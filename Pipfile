@@ -1,0 +1,20 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+dash = "*"
+waitress = "*"
+pandas = "*"
+numpy = "*"
+plotly = "*"
+dash-bootstrap-components = "*"
+pyvisa = "*"
+pathlib = "*"
+python-dotenv = {version = "*", extras = ["cli"]}
+
+[dev-packages]
+
+[requires]
+python_version = "3.11"
