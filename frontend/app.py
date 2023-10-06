@@ -1,140 +1,57 @@
-from pages import home, dashboard, dev
-import threading
-import dash
-import dash_bootstrap_components as dbc
-from dash import dcc, html
-from pages import factory
-from api.dg4202_api import DG4202APIServer
+from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget
+from PyQt6.QtWidgets import QVBoxLayout, QListWidget
+from PyQt6.QtWidgets import QStackedWidget
+from pages import home, dg4202
 import argparse
-import waitress
-from callbacks import main_callbacks
-from werkzeug.serving import make_server
-import sys
-from features.state_managers import DG4202Manager, StateManager
-from features.scheduler import Scheduler
-# At the top of the script:
+from qt_material import apply_stylesheet
 
 
-def init_managers(args_dict: dict):
-    factory.state_manager = StateManager()
-    factory.dg4202_manager = DG4202Manager(factory.state_manager, args_dict=args_dict)
-    factory.DG4202SCHEDULER: Scheduler(function_map=factory.dg4202_manager.function_map,
-                                       interval=0.001)
-    factory.state_manager.write_state({'last_known_device_uptime': None})
+class MainWindow(QMainWindow):
+
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("mrilabs")
+
+        self.layout = QVBoxLayout()
+        self.sidebar = QListWidget()
+        self.sidebar.addItem("Home")
+        self.sidebar.addItem("DG4202")
+
+        self.layout.addWidget(self.sidebar)
+        self.child_windows = {"Home": home.HomePage(), "DG4202": dg4202.DG4202Page()}
+        self.stacked_widget = QStackedWidget()
+        list(map(self.stacked_widget.addWidget,
+                 self.child_windows.values()))  # Adds all child pages
+
+        # Add more pages to the stacked_widget as needed...
+
+        self.layout.addWidget(self.stacked_widget)
+
+        container = QWidget()
+        container.setLayout(self.layout)
+        self.setCentralWidget(container)
+
+        self.sidebar.itemClicked.connect(self.loadPage)
+
+    def loadPage(self, item):
+        page_name = item.text()
+        page_widget = self.child_windows.get(page_name)
+        if page_widget:
+            self.stacked_widget.setCurrentWidget(page_widget)
 
 
-def create_app(args_dict: dict):
-    app = dash.Dash(__name__,
-                    external_stylesheets=[dbc.themes.BOOTSTRAP],
-                    meta_tags=[{
-                        "name": "viewport",
-                        "content": "width=device-width, initial-scale=1"
-                    }],
-                    suppress_callback_exceptions=False)
-    init_managers(args_dict=args_dict)
-    # Generate pages
-    pages = {
-        "Home": home.HomePage(app=app, args_dict=args_dict),
-        "DG4202": dashboard.DashboardPage(app=app, args_dict=args_dict),
-        "Dev": dev.DevPage(app=app, args_dict=args_dict),
-    }
-    app.title = "mrilabs"
+def create_app(args_dict: dict) -> (QApplication, QMainWindow):
 
-    app.scripts.config.serve_locally = True
-    # Fresh start
-
-    sidebar_header = dbc.Row([
-        dbc.Col(html.H2("mrilabs", className="display-4")),
-        dbc.Col(
-            html.Button(
-                # use the Bootstrap navbar-toggler classes to style the toggle
-                html.Span(className="navbar-toggler-icon"),
-                className="navbar-toggler",
-                # the navbar-toggler classes don't set color, so we do it here
-                style={
-                    "color": "rgba(0,0,0,.5)",
-                    "border-color": "rgba(0,0,0,.1)",
-                },
-                id="toggle",
-            ),
-            # the column containing the toggle will be only as wide as the
-            # toggle, resulting in the toggle being right aligned
-            width="auto",
-            # vertically align the toggle in the center
-            align="center",
-        ),
-        html.Div(id="sidebar-content")
-    ])
-
-    sidebar = html.Div(
-        [
-            sidebar_header,
-            html.Div(
-                [
-                    html.Hr(),
-                    html.P(
-                        "Tools",
-                        className="lead",
-                    ),
-                ],
-                id="blurb",
-            ),
-            dbc.Collapse(
-                dbc.Nav(
-                    [
-                        dbc.NavLink("Home", href="/", active="exact"),
-                        dbc.NavLink("DG4202", href="/dg4202", active="exact"),
-                    ],
-                    vertical=True,
-                    pills=True,
-                ),
-                id="collapse",
-            ),
-            dbc.Collapse(dbc.Button()),
-            html.Div(id="app-uptime"),
-            html.Div(id="device-uptime"),
-            html.Div(id="device-status-indicator"),
-        ],
-        id="sidebar",
-    )
-
-    content = html.Div(id="page-content", className="mt-4")
-
-    app.layout = html.Div([
-        dcc.Location(id="url"),
-        sidebar,
-        content,
-        dcc.Interval(
-            id='global-ticker',
-            interval=1 * 1000,  # in milliseconds
-            n_intervals=0)
-    ])
-
-    main_callbacks(app, args_dict, pages)
-
-    return app
-
-
-def run_flask_app(app, host, port, stop_event):
-    flask_server = make_server(host, port, app.server)
-    flask_server.serve_forever()
-
-
-def run_api_server(dg4202, server_port, stop_event):
-    # Your function to start the API server
-    api = DG4202APIServer(dg4202=dg4202, server_port=server_port)
-    api.run()
-
-
-def signal_handler(signal, frame):
-    print("Exit signal detected.")
-    # Perform additional error handling actions here if needed
-    sys.exit(0)
+    app = QApplication([])
+    window = MainWindow()
+    apply_stylesheet(app, theme='dark_teal.xml')
+    window.setWindowTitle("mrilabs")
+    window.show()
+    return app, window
 
 
 def run_application():
 
-    stop_event = threading.Event()
     parser = argparse.ArgumentParser(description="Run the mrilabs application.")
     parser.add_argument('--hardware-mock',
                         action='store_true',
@@ -161,32 +78,9 @@ def run_application():
     args = parser.parse_args()
     args_dict = vars(args)
     print(args_dict)
-    app = create_app(args_dict)
-    if args_dict.get('env') == 'production':
-        waitress.serve(app.server, host="0.0.0.0", port=args_dict['port'])
-    else:
-        threads = []
-        # Start the Flask app in one thread
-        print(f"Running Dash Application at http://localhost:{args_dict['port']}")
-        flask_thread = threading.Thread(target=run_flask_app,
-                                        args=(app, '0.0.0.0', args_dict['port'], stop_event))
-        #flask_thread.daemon = True
-        threads.append(flask_thread)
-        flask_thread.start()
-        if args_dict.get("api_server"):
-            print(f"Running DG4202 API server at http://localhost:{args_dict['api_server']}.")
+    app, window = create_app(args_dict)
+    app.exec()
 
-            # TODO create callback for interface refresh
-            # Start the API server in another thread
-            api_thread = threading.Thread(target=run_api_server,
-                                          args=(factory.dg4202_manager.create_dg4202(),
-                                                args_dict['api_server'], stop_event))
-            #api_thread.daemon = True
-            threads.append(api_thread)
-            api_thread.start()
-
-
-# set up signal handler
 
 if __name__ == "__main__":
     run_application()
