@@ -1,49 +1,71 @@
 from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget
-from PyQt6.QtWidgets import QVBoxLayout, QListWidget
-from PyQt6.QtWidgets import QStackedWidget
-from pages import home, dg4202
+from PyQt6.QtWidgets import QVBoxLayout, QListWidget, QListWidgetItem, QStackedWidget, QHBoxLayout
+from pages import home, dg4202, factory
 import argparse
 from qt_material import apply_stylesheet
+from typing import Dict, Optional
+
+from features.state_managers import DG4202Manager, StateManager
+from features.scheduler import Scheduler
+
+
+def init_managers(args_dict: dict):
+    factory.state_manager = StateManager()
+    factory.dg4202_manager = DG4202Manager(factory.state_manager, args_dict=args_dict)
+    factory.DG4202SCHEDULER: Scheduler(function_map=factory.dg4202_manager.function_map,
+                                       interval=0.001)
+    factory.state_manager.write_state({'last_known_device_uptime': None})
 
 
 class MainWindow(QMainWindow):
 
-    def __init__(self):
+    def __init__(self, args_dict: dict) -> None:
         super().__init__()
         self.setWindowTitle("mrilabs")
 
-        self.layout = QVBoxLayout()
-        self.sidebar = QListWidget()
-        self.sidebar.addItem("Home")
-        self.sidebar.addItem("DG4202")
+        # Main horizontal layout
+        self.mainLayout = QHBoxLayout()
 
-        self.layout.addWidget(self.sidebar)
-        self.child_windows = {"Home": home.HomePage(), "DG4202": dg4202.DG4202Page()}
-        self.stacked_widget = QStackedWidget()
+        # Sidebar on the left
+        self.sidebar: QListWidget = QListWidget(self)
+        self.sidebar.setMaximumWidth(200)
+        # Assuming HomePage and DG4202Page both inherit from QWidget
+        self.child_windows: Dict[str, QWidget] = {
+            "Home": home.HomePage(self, args_dict),
+            "DG4202": dg4202.DG4202Page(self, args_dict=args_dict)
+        }
+        self.stacked_widget: QStackedWidget = QStackedWidget(self)
         list(map(self.stacked_widget.addWidget,
                  self.child_windows.values()))  # Adds all child pages
 
-        # Add more pages to the stacked_widget as needed...
+        self.sidebar.addItems(self.child_windows.keys())
+        self.mainLayout.addWidget(self.sidebar)
 
+        # Vertical layout for the stacked widget (if you want to add anything else vertically next to the stacked widget)
+        self.layout = QVBoxLayout()
+        self.mainLayout.addLayout(self.layout)
+
+        # Add more pages to the stacked_widget as needed...
         self.layout.addWidget(self.stacked_widget)
 
-        container = QWidget()
-        container.setLayout(self.layout)
+        container: QWidget = QWidget(self)
+        container.setLayout(self.mainLayout)  # Use mainLayout here
         self.setCentralWidget(container)
 
         self.sidebar.itemClicked.connect(self.loadPage)
 
-    def loadPage(self, item):
-        page_name = item.text()
-        page_widget = self.child_windows.get(page_name)
+    def loadPage(self, item: QListWidgetItem) -> None:
+        page_name: str = item.text()
+        page_widget: Optional[QWidget] = self.child_windows.get(page_name)
         if page_widget:
             self.stacked_widget.setCurrentWidget(page_widget)
 
 
 def create_app(args_dict: dict) -> (QApplication, QMainWindow):
+    init_managers(args_dict=args_dict)
 
     app = QApplication([])
-    window = MainWindow()
+    window = MainWindow(args_dict)
     apply_stylesheet(app, theme='dark_teal.xml')
     window.setWindowTitle("mrilabs")
     window.show()
