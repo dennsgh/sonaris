@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch, call
 
 @pytest.fixture
 def mock_interface():
-    # This is a mock of the DG4202Interface class
+    # This is a mock of the Interface class
     interface = Mock()
     return interface
 

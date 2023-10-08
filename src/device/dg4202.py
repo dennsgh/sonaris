@@ -4,6 +4,8 @@ import abc
 import re
 from typing import Optional, Union, List, Tuple
 from werkzeug.serving import make_server
+from device.interface import Interface
+from pyvisa.resources import Resource
 
 
 class DG4202Detector:
@@ -43,33 +45,7 @@ class DG4202Detector:
         return None
 
 
-class DG4202Interface(abc.ABC):
-
-    @abc.abstractmethod
-    def write(self, command: str) -> None:
-        """
-        Abstract method for writing a command to the interface.
-
-        Args:
-            command (str): The command to be written.
-        """
-        pass
-
-    @abc.abstractmethod
-    def read(self, command: str) -> str:
-        """
-        Abstract method for reading a response from the interface.
-
-        Args:
-            command (str): The command to be sent for reading.
-
-        Returns:
-            str: The response received from the interface.
-        """
-        pass
-
-
-class DG4202Ethernet(DG4202Interface):
+class DG4202Ethernet(Interface):
 
     def __init__(self, ip_address: str):
         rm = pyvisa.ResourceManager()
@@ -82,11 +58,11 @@ class DG4202Ethernet(DG4202Interface):
         return self.inst.query(command)
 
 
-class DG4202USB(DG4202Interface):
+class DG4202USB(Interface):
 
     def __init__(self, resource_name: str):
         rm = pyvisa.ResourceManager()
-        self.inst = rm.open_resource(resource_name)
+        self.inst: Resource = rm.open_resource(resource_name)
 
     def write(self, command: str) -> None:
         self.inst.write(command)
@@ -117,7 +93,7 @@ class DG4202:
         """
         return ['off', 'sweep', 'burst', 'mod']
 
-    def __init__(self, interface: DG4202Interface):
+    def __init__(self, interface: Interface):
         self.interface = interface
 
     def set_waveform(self,
@@ -409,7 +385,7 @@ class DG4202Mock(DG4202):
             return object.__getattribute__(self, name)
 
 
-class DG4202MockInterface(DG4202Interface):
+class DG4202MockInterface(Interface):
 
     def __init__(self):
         self.state = {

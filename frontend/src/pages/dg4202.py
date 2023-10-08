@@ -2,8 +2,9 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from pages.templates import BasePage
 from device.dg4202 import DG4202
-from pages import factory
+from pages import factory, plotter
 from datetime import datetime, timedelta
+from PyQt6.QtCharts import QChart, QChartView, QLineSeries
 
 NOT_FOUND_STRING = 'Device not found!'
 TIMER_INTERVAL = 1000.  # in ms
@@ -74,6 +75,7 @@ class DG4202Page(BasePage):
         self.args_dict = args_dict
         self.channel_count = 2
         self.link_channel = False
+        self.waveform_plot = {1: QChartView(QChart()), 2: QChartView(QChart())}
         self.all_parameters = {}
         # Create widgets
         self.get_all_parameters()
@@ -229,8 +231,7 @@ class DG4202Page(BasePage):
         # NOTE: Use a library like pyqtgraph or matplotlib for the plot.
         # Placeholder label for now
         right_column_layout = QVBoxLayout()
-        waveform_plot_placeholder = QLabel("Waveform Plot Here")
-        right_column_layout.addWidget(waveform_plot_placeholder,
+        right_column_layout.addWidget(self.waveform_plot[channel],
                                       alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Add the columns to the main layout
@@ -291,11 +292,8 @@ class DG4202Page(BasePage):
             status_string = f"[{datetime.now().isoformat()}] Waveform updated."
             # Assuming you have a status_label in your UI
             self.status_label.setText(status_string)
-
-            # If you were using a library like pyqtgraph or matplotlib for the plot, you would update the graph here
-            # For the sake of example, I'm adding a comment
-            # figure = plotter.plot_waveform(waveform_type, frequency, amplitude, offset)
-            # self.waveform_plot.update_figure(figure)
+            figure = plotter.plot_waveform(waveform_type, frequency, amplitude, offset)
+            self.waveform_plot[channel] = QChartView(figure).setFixedSize(300, 300)
 
         else:
             # Update some status label or log if you have one
