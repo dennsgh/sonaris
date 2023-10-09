@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import QLabel, QVBoxLayout
 from pages.templates import ModuleWidget
 
 
-class HomePage(ModuleWidget):
+class SettingsPage(ModuleWidget):
 
     def __init__(self, parent=None, args_dict: dict = None):
         super().__init__(parent=parent)

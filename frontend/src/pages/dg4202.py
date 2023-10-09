@@ -5,6 +5,8 @@ from device.dg4202 import DG4202
 from pages import factory, plotter
 from datetime import datetime, timedelta
 from PyQt6.QtCharts import QChart, QChartView, QLineSeries
+import pyqtgraph as pg
+from widgets.realtimeplot import RealTimePlotWidget
 
 NOT_FOUND_STRING = 'Device not found!'
 TIMER_INTERVAL = 1000.  # in ms
@@ -75,7 +77,7 @@ class DG4202Page(ModuleWidget):
         self.args_dict = args_dict
         self.channel_count = 2
         self.link_channel = False
-        self.waveform_plot = {1: QChartView(QChart()), 2: QChartView(QChart())}
+        self.waveform_plot = {1: pg.PlotWidget(), 2: pg.PlotWidget()}
         self.all_parameters = {}
         self.get_all_parameters()
         self.create_widgets()
@@ -293,6 +295,7 @@ class DG4202Page(ModuleWidget):
             self.status_label.setText(status_string)
             figure = plotter.plot_waveform(waveform_type, frequency, amplitude, offset)
             self.waveform_plot[channel] = QChartView(figure).setFixedSize(300, 300)
+            self.waveform_plot.update()
 
         else:
             # Update some status label or log if you have one

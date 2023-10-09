@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget
 from PyQt6.QtWidgets import QVBoxLayout, QListWidget, QListWidgetItem, QStackedWidget, QHBoxLayout
-from pages import home, dg4202, factory
+from pages import dg4202, factory, settings
 import argparse
 from qt_material import apply_stylesheet
 from typing import Dict, Optional
@@ -35,8 +35,8 @@ class MainWindow(ModularMainWindow):
         # ---------------------------SIDEBAR SETUP------------------------------ #
         self.sidebar = Sidebar(self)
         self.sidebar_dict: Dict[str, QWidget] = {
-            "Home": home.HomePage(self, args_dict),
-            "DG4202": dg4202.DG4202Page(self, args_dict=args_dict)
+            "DG4202": dg4202.DG4202Page(self, args_dict=args_dict),
+            "Settings": settings.SettingsPage(self, args_dict),
         }
         self.sidebar.addItems(self.sidebar_dict.keys())  # Add strings to sidebar items
         self.sidebar_content = QStackedWidget(self)
