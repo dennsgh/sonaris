@@ -10,10 +10,12 @@ from pyvisa.resources import Resource
 
 class DG4202Detector:
 
-    @staticmethod
-    def detect_device() -> Optional['DG4202']:
+    def __init__(self, resource_manager: pyvisa.ResourceManager):
+        self.rm = resource_manager
+
+    def detect_device(self) -> Optional['DG4202']:
         """
-        Static method that attempts to detect a DG4202 device connected via TCP/IP or USB.
+        Method that attempts to detect a DG4202 device connected via TCP/IP or USB.
         Loops through all available resources, attempting to open each one and query its identity.
         If a DG4202 device is found, it creates and returns a DG4202 instance.
 
@@ -21,13 +23,12 @@ class DG4202Detector:
             DG4202: An instance of the DG4202 class connected to the detected device, 
                     or None if no such device is found.
         """
-        rm = pyvisa.ResourceManager()
-        resources = rm.list_resources()
+        resources = self.rm.list_resources()
 
         for resource in resources:
             if re.match("^TCPIP", resource):
                 try:
-                    device = rm.open_resource(resource)
+                    device = self.rm.open_resource(resource)
                     idn = device.query("*IDN?")
                     if "DG4202" in idn:
                         return DG4202(DG4202Ethernet(resource.split('::')[1]))
@@ -35,7 +36,7 @@ class DG4202Detector:
                     pass
             elif re.match("^USB", resource):
                 try:
-                    device = rm.open_resource(resource)
+                    device = self.rm.open_resource(resource)
                     idn = device.query("*IDN?")
                     if "DG4202" in idn:
                         return DG4202(DG4202USB(resource))

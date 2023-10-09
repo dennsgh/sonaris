@@ -1,7 +1,6 @@
 import numpy as np
 import plotly.graph_objs as go
 from typing import Union, Optional, Dict
-from plotly.graph_objs import Figure
 
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
 from PyQt6.QtCharts import QChart, QChartView, QLineSeries
@@ -12,7 +11,7 @@ def plot_waveform(waveform_type: Optional[str] = None,
                   frequency: Optional[float] = None,
                   amplitude: Optional[float] = None,
                   offset: Optional[float] = None,
-                  params: dict = None) -> Figure:
+                  params: dict = None) -> QChart:
     """
     Generate and plot different types of waveforms.
 
@@ -74,7 +73,7 @@ def plot_waveform(waveform_type: Optional[str] = None,
 def plot_sweep(start_frequency: Optional[float] = None,
                stop_frequency: Optional[float] = None,
                duration: Optional[float] = None,
-               params: dict = None) -> Figure:
+               params: dict = None) -> QChart:
     """
     Generate and plot a frequency sweep.
 

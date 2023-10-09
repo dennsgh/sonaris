@@ -3,42 +3,39 @@ from pyvisa.resources import Resource
 import re
 from typing import Optional
 from device.interface import Interface
+from collections import deque
+import numpy as np
 
 
 class EDUX1002ADetector:
 
-    @staticmethod
-    def detect_device() -> Optional['EDUX1002A']:
-        """
-        Static method that attempts to detect an EDUX1002A device connected via TCP/IP or USB.
-        Loops through all available resources, attempting to open each one and query its identity.
-        If an EDUX1002A device is found, it creates and returns an EDUX1002A instance.
+    def __init__(self, resource_manager: pyvisa.ResourceManager):
+        self.rm = resource_manager
 
-        Returns:
-            EDUX1002A: An instance of the EDUX1002A class connected to the detected device, 
-                       or None if no such device is found.
-        """
-        rm = pyvisa.ResourceManager()
-        resources = rm.list_resources()
-
+    def detect_device(self) -> Optional['EDUX1002A']:
+        resources = self.rm.list_resources()
         for resource in resources:
-            if re.match("^TCPIP", resource):
-                try:
-                    device = rm.open_resource(resource)
-                    idn = device.query("*IDN?")
-                    if "EDUX1002A" in idn:
-                        return EDUX1002A(EDUX1002AEthernet(resource.split('::')[1]))
-                except pyvisa.errors.VisaIOError:
-                    pass
-            elif re.match("^USB", resource):
-                try:
-                    device = rm.open_resource(resource)
-                    idn = device.query("*IDN?")
-                    if "EDUX1002A" in idn:
-                        return EDUX1002A(EDUX1002AUSB(resource))
-                except pyvisa.errors.VisaIOError:
-                    pass
+            if resource.startswith("TCPIP"):
+                detected_device = self._detect_via_protocol(resource, EDUX1002AEthernet)
+                if detected_device:
+                    return detected_device
+            elif resource.startswith("USB"):
+                detected_device = self._detect_via_protocol(resource, EDUX1002AUSB)
+                if detected_device:
+                    return detected_device
 
+        return None
+
+    def _detect_via_protocol(self, resource: str, protocol_cls: type) -> Optional['EDUX1002A']:
+        try:
+            device = self.rm.open_resource(resource)
+            idn = device.query("*IDN?")
+            if "EDU-X 1002A" in idn:
+                if issubclass(protocol_cls, EDUX1002AEthernet):
+                    return EDUX1002A(protocol_cls(resource.split('::')[1]))
+                return EDUX1002A(protocol_cls(resource))
+        except pyvisa.errors.VisaIOError as e:
+            print(f"Failed to connect with resource {resource}. Error: {e}")
         return None
 
 
@@ -69,37 +66,88 @@ class EDUX1002AUSB(Interface):
 
 
 class EDUX1002A:
+    """Keysight EDUX1002A hardware driver/wrapper."""
 
-    def __init__(self, interface: Interface):
+    def __init__(self, interface, buffer_size: int = 512, timeout=20000):
+        self.buffer = deque(maxlen=buffer_size)
         self.interface = interface
+        self.interface.inst.timeout = timeout
 
     def setup_waveform_readout(self, channel: int = 1):
-        """Setup the oscilloscope for waveform readout"""
+        """Setup the oscilloscope for waveform readout."""
         self.interface.write(f"CHANNEL{channel}:DISPLAY ON")
         self.interface.write(f"DATA:SOURCE CHANNEL{channel}")
-        self.interface.write("DATA:WIDTH 2")
-        self.interface.write("DATA:ENCODING RIBINARY")
+        self.interface.write("WAVEFORM:FORMAT ASCII")
 
     def get_waveform_preamble(self):
-        """Retrieve the waveform preamble which provides data on the waveform format"""
-        preamble = self.interface.read("WAVEFORM:PREABLE?")
-        # Parsing preamble and converting to useful data might be needed here.
-        # For simplicity, we'll return it as-is.
-        return preamble
+        """Retrieve the waveform preamble which provides data on the waveform format."""
+        preamble = self.interface.read("WAVeform:PREamble?")
+        return [float(val) for val in preamble.split(',')]
 
     def get_waveform_data(self):
-        """Get the waveform data from the oscilloscope"""
-        raw_data = self.interface.read("FETCH:WAVEFORM?")
-        # You'd need to convert the raw_data to actual waveform values.
-        # This might involve considering the data width, encoding, etc.
-        # For this example, we'll assume the raw_data is directly usable:
-        return raw_data
+        """Get the waveform data from the oscilloscope."""
+        waveform_data = self.interface.read("WAVeform:DATA?")
+
+        # Check for header
+        if waveform_data[0] == '#':
+            num_digits = int(waveform_data[1])
+            num_data_points = int(waveform_data[2:2 + num_digits])
+
+            # Extract the actual data without the header
+            waveform_data = waveform_data[2 + num_digits:]
+
+        return np.array([float(val) for val in waveform_data.split(',')])
 
     def get_waveform(self, channel: int = 1):
-        """Public method to setup, retrieve and process waveform data"""
+        """Public method to setup, retrieve, and process waveform data."""
         self.setup_waveform_readout(channel)
         preamble = self.get_waveform_preamble()
         waveform_data = self.get_waveform_data()
-        # Here you can process waveform_data further based on the preamble.
-        # For simplicity, we'll return the waveform_data as-is.
-        return waveform_data
+
+        # Extract information from preamble
+        x_increment = preamble[4]
+        x_origin = preamble[5]
+        y_increment = preamble[7]
+        y_origin = preamble[8]
+
+        # Convert data to actual voltage and time values
+        time = np.arange(len(waveform_data)) * x_increment + x_origin
+        voltage = waveform_data * y_increment + y_origin
+
+        return time, voltage
+
+    def update_buffer(self, channel: int = 1):
+        _, voltage = self.get_waveform(channel)
+        self.buffer.append(voltage)
+
+    def set_timeout(self, timeout):
+        self.interface.inst.timeout = timeout
+
+
+if __name__ == "__main__":
+    # Detect the device
+    import matplotlib.pyplot as plt
+    from matplotlib.animation import FuncAnimation
+    rm = pyvisa.ResourceManager()
+    device = EDUX1002ADetector(resource_manager=rm).detect_device()
+    device.setup_waveform_readout()
+    device.get_waveform_data()
+    if device:
+        fig, ax = plt.subplots()
+        x = list(range(device.buffer.maxlen))
+
+        # Check if the device buffer has data. If not, use zeros.
+        y = list(device.buffer) if len(device.buffer) > 0 else [0] * device.buffer.maxlen
+
+        line, = ax.plot(x, y)
+
+        def update(frame):
+            device.update_buffer()
+            y = list(device.buffer)
+            line.set_ydata(y)
+            return line,
+
+        ani = FuncAnimation(fig, update, frames=100, blit=True, interval=100)
+        plt.show()
+    else:
+        print("No EDUX1002A device detected.")

@@ -7,10 +7,10 @@ from features.state_managers import StateManager, DG4202Manager
 from pathlib import Path
 import os
 import threading
-
+import pyvisa
 #DG4202_MOCK_DEVICE = DG4202Mock()
 STATE_FILE = Path(os.getenv("DATA"), "state.json")
-
+resource_manager: pyvisa.ResourceManager = None
 app_start_time = time.time()
 # ================================== Place holder globals, these are initialized in app.py
 state_manager: StateManager = None

@@ -7,11 +7,15 @@ from typing import Dict, Optional
 
 from features.state_managers import DG4202Manager, StateManager
 from features.scheduler import Scheduler
+import pyvisa
 
 
 def init_managers(args_dict: dict):
+    factory.resource_manager = pyvisa.ResourceManager()
     factory.state_manager = StateManager()
-    factory.dg4202_manager = DG4202Manager(factory.state_manager, args_dict=args_dict)
+    factory.dg4202_manager = DG4202Manager(factory.state_manager,
+                                           args_dict=args_dict,
+                                           resource_manager=factory.resource_manager)
     factory.DG4202SCHEDULER: Scheduler(function_map=factory.dg4202_manager.function_map,
                                        interval=0.001)
     factory.state_manager.write_state({'last_known_device_uptime': None})

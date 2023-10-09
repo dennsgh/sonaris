@@ -5,6 +5,7 @@ import time
 from features.scheduler import Scheduler, FunctionMap
 from pathlib import Path
 import os
+import pyvisa
 
 
 class StateManager:
@@ -41,18 +42,20 @@ class StateManager:
 
 class DG4202Manager:
 
-    def __init__(self, state_manager: StateManager, args_dict: dict):
+    def __init__(self, state_manager: StateManager, args_dict: dict,
+                 resource_manager: pyvisa.ResourceManager):
         self.state_manager = state_manager
         self.args_dict = args_dict
         self._mock_device = DG4202Mock()
         self._initialize_device()
         self.function_map = self._initialize_function_map()  # required for scheduler
+        self.rm = resource_manager
 
     def _initialize_device(self):
         if self.args_dict['hardware_mock']:
             self.dg4202_device = self._mock_device
         else:
-            self.dg4202_device = DG4202Detector.detect_device()
+            self.dg4202_device = DG4202Detector(resource_manager=self.rm).detect_device()
 
     def _output_on_off_wrapper(self, *args, **kwargs):
         if not self.dg4202_device.is_connection_alive():
@@ -115,7 +118,7 @@ class DG4202Manager:
                 self.dg4202_device = self._mock_device
                 return self.dg4202_device
         else:
-            self.dg4202_device = DG4202Detector().detect_device()
+            self.dg4202_device = DG4202Detector(resource_manager=self.rm).detect_device()
             if self.dg4202_device is None:
                 state["last_known_device_uptime"] = None  # Reset the uptime
             else:
