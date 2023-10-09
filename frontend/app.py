@@ -8,6 +8,9 @@ from typing import Dict, Optional
 from features.state_managers import DG4202Manager, StateManager
 from features.scheduler import Scheduler
 import pyvisa
+from widgets.sidebar import Sidebar
+from widgets.oscilloscope import OscilloscopeWidget
+from pages.templates import *
 
 
 def init_managers(args_dict: dict):
@@ -21,48 +24,43 @@ def init_managers(args_dict: dict):
     factory.state_manager.write_state({'last_known_device_uptime': None})
 
 
-class MainWindow(QMainWindow):
+class MainWindow(ModularMainWindow):
 
     def __init__(self, args_dict: dict) -> None:
         super().__init__()
-        self.setWindowTitle("mrilabs")
 
-        # Main horizontal layout
-        self.mainLayout = QHBoxLayout()
+        self.setWindowTitle("MRI Labs")
 
-        # Sidebar on the left
-        self.sidebar: QListWidget = QListWidget(self)
-        self.sidebar.setMaximumWidth(200)
-        # Assuming HomePage and DG4202Page both inherit from QWidget
-        self.child_windows: Dict[str, QWidget] = {
+        # ---------------------------------------------------------------------- #
+        # ---------------------------SIDEBAR SETUP------------------------------ #
+        self.sidebar = Sidebar(self)
+        self.sidebar_dict: Dict[str, QWidget] = {
             "Home": home.HomePage(self, args_dict),
             "DG4202": dg4202.DG4202Page(self, args_dict=args_dict)
         }
-        self.stacked_widget: QStackedWidget = QStackedWidget(self)
-        list(map(self.stacked_widget.addWidget,
-                 self.child_windows.values()))  # Adds all child pages
+        self.sidebar.addItems(self.sidebar_dict.keys())  # Add strings to sidebar items
+        self.sidebar_content = QStackedWidget(self)
+        list(map(self.sidebar_content.addWidget,
+                 self.sidebar_dict.values()))  # Adds all child widgets to content widgets
 
-        self.sidebar.addItems(self.child_windows.keys())
-        self.mainLayout.addWidget(self.sidebar)
+        # ---------------------------OSCILLOSCOPE------------------------------ #
+        self.oscilloscope = OscilloscopeWidget(None)
 
-        # Vertical layout for the stacked widget (if you want to add anything else vertically next to the stacked widget)
-        self.layout = QVBoxLayout()
-        self.mainLayout.addLayout(self.layout)
+        # --------------------------------------------------------------------- #
+        # ---------------------------LAYOUT SETUP------------------------------ #
+        # --------------------------------------------------------------------- #
 
-        # Add more pages to the stacked_widget as needed...
-        self.layout.addWidget(self.stacked_widget)
+        self.add_widget_to_left(self.sidebar)
+        self.add_widget_to_middle(self.sidebar_content)  # Use the method from ModularMainWindow
+        self.add_widget_to_top(self.oscilloscope)  # Use the method from ModularMainWindow
 
-        container: QWidget = QWidget(self)
-        container.setLayout(self.mainLayout)  # Use mainLayout here
-        self.setCentralWidget(container)
+        # Connect the Sidebar's custom signal to the MainWindow's slot
+        self.sidebar.pageSelected.connect(self.loadPage)
 
-        self.sidebar.itemClicked.connect(self.loadPage)
-
-    def loadPage(self, item: QListWidgetItem) -> None:
-        page_name: str = item.text()
-        page_widget: Optional[QWidget] = self.child_windows.get(page_name)
+    def loadPage(self, page_name: str) -> None:
+        page_widget: Optional[QWidget] = self.sidebar_dict.get(page_name)
         if page_widget:
-            self.stacked_widget.setCurrentWidget(page_widget)
+            self.sidebar_content.setCurrentWidget(page_widget)
 
 
 def create_app(args_dict: dict) -> (QApplication, QMainWindow):

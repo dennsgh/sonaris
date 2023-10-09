@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
-from pages.templates import BasePage
+from pages.templates import ModuleWidget
 from device.dg4202 import DG4202
 from pages import factory, plotter
 from datetime import datetime, timedelta
@@ -13,7 +13,7 @@ TIMER_INTERVAL_S = TIMER_INTERVAL / 1000.  # in ms
 DEFAULT_TAB_STYLE = {'height': '30px', 'padding': '2px'}
 
 
-class DG4202Page(BasePage):
+class DG4202Page(ModuleWidget):
 
     def check_connection(self) -> bool:
 
@@ -77,12 +77,10 @@ class DG4202Page(BasePage):
         self.link_channel = False
         self.waveform_plot = {1: QChartView(QChart()), 2: QChartView(QChart())}
         self.all_parameters = {}
-        # Create widgets
         self.get_all_parameters()
         self.create_widgets()
-        # Create layout using the widgets
-        self.create_layout()
-        self.setLayout(self.main_layout)
+        # Init UI
+        self.initUI()
 
     def create_widgets(self):
         # A dictionary to store widgets for each channel by channel number
@@ -103,9 +101,8 @@ class DG4202Page(BasePage):
                 "sweep_control": sweep_control
             }
 
-    def create_layout(self):
+    def initUI(self):
         self.main_layout = QVBoxLayout()
-
         self.connection_status_label = QLabel(
             "Connection Status:")  # Placeholder for connection status
         self.main_layout.addWidget(self.connection_status_label)
@@ -120,6 +117,8 @@ class DG4202Page(BasePage):
             self.main_layout.addWidget(tab_widget)
             tab_widget.currentChanged.connect(self.on_tab_changed)
             self.main_layout.addWidget(widgets["main_controls"])
+
+        self.setLayout(self.main_layout)
 
     def generate_main_controls(self, channel: int) -> QWidget:
         # Setting up Timer Modal (Dialog)
