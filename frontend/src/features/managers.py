@@ -169,8 +169,8 @@ class EDUX1002AManager:
         if not self.edux1002a_device:
             print("Failed to initialize EDUX1002A device.")
             return
-        self.buffer_ch1 = DataBuffer(EDUX1002ADataSource(self.edux1002a_device), 1)
-        self.buffer_ch2 = DataBuffer(EDUX1002ADataSource(self.edux1002a_device), 2)
+        self.buffer_ch1 = DataBuffer(EDUX1002ADataSource(self.edux1002a_device, 1), 1)
+        self.buffer_ch2 = DataBuffer(EDUX1002ADataSource(self.edux1002a_device, 2), 2)
 
     def is_device_alive(self) -> bool:
         try:
@@ -224,8 +224,8 @@ class EDUX1002AManager:
             if self.edux1002a_device is None:
                 state["edux_last_alive"] = None  # Reset the uptime
             else:
-                self.buffer_ch1 = DataBuffer(EDUX1002ADataSource(self.edux1002a_device), 1)
-                self.buffer_ch1 = DataBuffer(EDUX1002ADataSource(self.edux1002a_device), 2)
+                self.buffer_ch1 = DataBuffer(EDUX1002ADataSource(self.edux1002a_device, 1), 1)
+                self.buffer_ch2 = DataBuffer(EDUX1002ADataSource(self.edux1002a_device, 2), 2)
                 if state["edux_last_alive"] is None:
                     state["edux_last_alive"] = time.time()
             self.state_manager.write_state(state)

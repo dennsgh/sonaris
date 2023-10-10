@@ -78,16 +78,18 @@ class EDUX1002A:
     def setup_waveform_readout(self, channel: int = 1):
         """Setup the oscilloscope for waveform readout."""
         self.interface.write(f"CHANNEL{channel}:DISPLAY ON")
-        self.interface.write(f"DATA:SOURCE CHANNEL{channel}")
-        self.interface.write("WAVEFORM:FORMAT ASCII")
+        #self.interface.write(f"DATA:SOURCE CHANNEL{channel}")
+        self.interface.write("WAVeform:FORMat ASCII")
+        self.interface.write(f"WAVeform:SOURce CHANnel{channel}")
 
     def get_waveform_preamble(self):
         """Retrieve the waveform preamble which provides data on the waveform format."""
         preamble = self.interface.read("WAVeform:PREamble?")
         return [float(val) for val in preamble.split(',')]
 
-    def get_waveform_data(self):
+    def get_waveform_data(self, channel: int = 1):
         """Get the waveform data from the oscilloscope."""
+        self.setup_waveform_readout(channel)
         waveform_data = self.interface.read("WAVeform:DATA?")
 
         # Check for header
