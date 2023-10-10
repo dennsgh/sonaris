@@ -16,11 +16,19 @@ class OscilloscopeWidget(ModuleWidget):
         self.oscilloscope = oscilloscope
         self.channel = channel
         self.tick = 50  # ms
+        self.x_input = {1: None, 2: None}
+        self.y_input = {1: None, 2: None}
         self.initUI()
 
     def update_spinbox_values(self, xRange, yRange, x_input, y_input):
+        x_input.blockSignals(True)
+        y_input.blockSignals(True)
+
         x_input.setValue((xRange[0] + xRange[1]) / 2)
         y_input.setValue((yRange[0] + yRange[1]) / 2)
+
+        x_input.blockSignals(False)
+        y_input.blockSignals(False)
 
     def _create_channel_ui(self, channel: int):
         # Creating a group for better organization
@@ -37,36 +45,47 @@ class OscilloscopeWidget(ModuleWidget):
         axis_layout = QHBoxLayout()
         axis_layout.addWidget(QLabel("X-axis:"))
 
-        self.x_input = QDoubleSpinBox()
-        self.x_input.setRange(-1e6, 1e6)
-        self.x_input.valueChanged.connect(lambda val: plot_widget.setXRange(-val, val))
-        axis_layout.addWidget(self.x_input)
+        self.x_input[channel] = QDoubleSpinBox()
+        self.x_input[channel].setRange(-1e6, 1e6)
+        self.x_input[channel].valueChanged.connect(lambda val: (plot_widget.setXRange(
+            -val, val), self.x_input[channel].blockSignals(True), self.x_input[channel].setValue(
+                val), self.x_input[channel].blockSignals(False)))
+
+        axis_layout.addWidget(self.x_input[channel])
 
         x_zoom_in = QPushButton("+")
-        x_zoom_in.clicked.connect(
-            lambda: plot_widget.setXRange(*[axis * 0.9 for axis in plot_widget.viewRange()[0]]))
+        x_zoom_in.clicked.connect(lambda: (plot_widget.blockSignals(
+            True), plot_widget.setXRange(*[axis * 0.9 for axis in plot_widget.viewRange()[0]]),
+                                           plot_widget.blockSignals(False)))
+
         axis_layout.addWidget(x_zoom_in)
 
         x_zoom_out = QPushButton("-")
-        x_zoom_out.clicked.connect(
-            lambda: plot_widget.setXRange(*[axis * 1.1 for axis in plot_widget.viewRange()[0]]))
+        # For X-axis zoom out button:
+        x_zoom_out.clicked.connect(lambda: (plot_widget.blockSignals(
+            True), plot_widget.setXRange(*[axis * 1.1 for axis in plot_widget.viewRange()[0]]),
+                                            plot_widget.blockSignals(False)))
         axis_layout.addWidget(x_zoom_out)
 
         axis_layout.addWidget(QLabel("Y-axis:"))
 
-        self.y_input = QDoubleSpinBox()
-        self.y_input.setRange(-1e6, 1e6)
-        self.y_input.valueChanged.connect(lambda val: plot_widget.setYRange(-val, val))
-        axis_layout.addWidget(self.y_input)
+        self.y_input[channel] = QDoubleSpinBox()
+        self.y_input[channel].setRange(-1e6, 1e6)
+        # For Y-axis spinbox:
+        self.y_input[channel].valueChanged.connect(lambda val: (plot_widget.setYRange(
+            -val, val), self.y_input[channel].blockSignals(True), self.y_input[channel].setValue(
+                val), self.y_input[channel].blockSignals(False)))
 
         y_zoom_in = QPushButton("+")
-        y_zoom_in.clicked.connect(
-            lambda: plot_widget.setYRange(*[axis * 0.9 for axis in plot_widget.viewRange()[1]]))
+        y_zoom_in.clicked.connect(lambda: (plot_widget.blockSignals(
+            True), plot_widget.setYRange(*[axis * 0.9 for axis in plot_widget.viewRange()[1]]),
+                                           plot_widget.blockSignals(False)))
         axis_layout.addWidget(y_zoom_in)
 
         y_zoom_out = QPushButton("-")
-        y_zoom_out.clicked.connect(
-            lambda: plot_widget.setYRange(*[axis * 1.1 for axis in plot_widget.viewRange()[1]]))
+        y_zoom_out.clicked.connect(lambda: (plot_widget.blockSignals(
+            True), plot_widget.setYRange(*[axis * 1.1 for axis in plot_widget.viewRange()[1]]),
+                                            plot_widget.blockSignals(False)))
         axis_layout.addWidget(y_zoom_out)
 
         channel_layout.addLayout(axis_layout)
@@ -83,7 +102,7 @@ class OscilloscopeWidget(ModuleWidget):
         plot_widget.getAxis('bottom').setPen('w')
 
         # Inside _create_channel_ui
-        handler = self.make_range_changed_handler(self.x_input, self.y_input)
+        handler = self.make_range_changed_handler(self.x_input[channel], self.y_input[channel])
         plot_widget.getViewBox().sigRangeChanged.connect(handler)
 
         return channel_group, plot_data

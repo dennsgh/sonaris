@@ -130,9 +130,9 @@ if __name__ == "__main__":
     from matplotlib.animation import FuncAnimation
     rm = pyvisa.ResourceManager()
     device = EDUX1002ADetector(resource_manager=rm).detect_device()
-    device.setup_waveform_readout()
-    device.get_waveform_data()
     if device:
+        device.setup_waveform_readout()
+        device.get_waveform_data()
         fig, ax = plt.subplots()
         x = list(range(device.buffer.maxlen))
 
@@ -143,8 +143,18 @@ if __name__ == "__main__":
 
         def update(frame):
             device.update_buffer()
-            y = list(device.buffer)
-            line.set_ydata(y)
+
+            # Flatten the buffer to get the entire y data
+            y_data = np.concatenate(list(device.buffer))
+
+            # Update x data based on the length of y data
+            x_data = np.arange(len(y_data))
+
+            line.set_data(x_data, y_data)
+
+            ax.relim()  # Recompute the data limits
+            ax.autoscale_view()  # Rescale the plot
+
             return line,
 
         ani = FuncAnimation(fig, update, frames=100, blit=True, interval=100)
