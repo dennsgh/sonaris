@@ -6,6 +6,8 @@ from device.interface import Interface
 from collections import deque
 import numpy as np
 
+from device.data import DataSource
+
 
 class EDUX1002ADetector:
 
@@ -124,40 +126,15 @@ class EDUX1002A:
         self.interface.inst.timeout = timeout
 
 
-if __name__ == "__main__":
-    # Detect the device
-    import matplotlib.pyplot as plt
-    from matplotlib.animation import FuncAnimation
-    rm = pyvisa.ResourceManager()
-    device = EDUX1002ADetector(resource_manager=rm).detect_device()
-    if device:
-        device.setup_waveform_readout()
-        device.get_waveform_data()
-        fig, ax = plt.subplots()
-        x = list(range(device.buffer.maxlen))
+class EDUX1002ADataSource(DataSource):
 
-        # Check if the device buffer has data. If not, use zeros.
-        y = list(device.buffer) if len(device.buffer) > 0 else [0] * device.buffer.maxlen
+    def __init__(self, device: EDUX1002A, channel: int = 1):
+        super().__init__(device)
+        self.channel = channel
 
-        line, = ax.plot(x, y)
-
-        def update(frame):
-            device.update_buffer()
-
-            # Flatten the buffer to get the entire y data
-            y_data = np.concatenate(list(device.buffer))
-
-            # Update x data based on the length of y data
-            x_data = np.arange(len(y_data))
-
-            line.set_data(x_data, y_data)
-
-            ax.relim()  # Recompute the data limits
-            ax.autoscale_view()  # Rescale the plot
-
-            return line,
-
-        ani = FuncAnimation(fig, update, frames=100, blit=True, interval=100)
-        plt.show()
-    else:
-        print("No EDUX1002A device detected.")
+    def query_data(self):
+        try:
+            time, voltage = self.device.get_waveform(self.channel)
+            return voltage
+        except:
+            return []

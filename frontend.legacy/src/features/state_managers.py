@@ -20,9 +20,9 @@ class StateManager:
                 with open(self.json_file, 'r') as f:
                     return json.load(f)
             else:
-                return {"last_known_device_uptime": None}
+                return {"dg_last_alive": None}
         except (FileNotFoundError, ValueError):
-            return {"last_known_device_uptime": None}
+            return {"dg_last_alive": None}
 
     def write_state(self, state: dict):
         with open(self.json_file, 'w') as f:
@@ -108,22 +108,22 @@ class DG4202Manager:
         if self.args_dict['hardware_mock']:
             if self._mock_device.killed:
                 # Simulate dead device
-                state["last_known_device_uptime"] = None
+                state["dg_last_alive"] = None
                 self.state_manager.write_state(state)
                 return None
             else:
-                if state["last_known_device_uptime"] is None:
-                    state["last_known_device_uptime"] = time.time()
+                if state["dg_last_alive"] is None:
+                    state["dg_last_alive"] = time.time()
                 self.state_manager.write_state(state)
                 self.dg4202_device = self._mock_device
                 return self.dg4202_device
         else:
             self.dg4202_device = DG4202Detector(resource_manager=self.rm).detect_device()
             if self.dg4202_device is None:
-                state["last_known_device_uptime"] = None  # Reset the uptime
+                state["dg_last_alive"] = None  # Reset the uptime
             else:
-                if state["last_known_device_uptime"] is None:
-                    state["last_known_device_uptime"] = time.time()
+                if state["dg_last_alive"] is None:
+                    state["dg_last_alive"] = time.time()
             self.state_manager.write_state(state)
             return self.dg4202_device
 
@@ -138,8 +138,8 @@ class DG4202Manager:
             str: Uptime in HH:MM:SS format if known, otherwise 'N/A'.
         """
         state = self.state_manager.read_state()
-        if state["last_known_device_uptime"]:
-            uptime_seconds = time.time() - state["last_known_device_uptime"]
+        if state["dg_last_alive"]:
+            uptime_seconds = time.time() - state["dg_last_alive"]
             uptime_str = str(timedelta(seconds=int(uptime_seconds)))
             return uptime_str
         else:

@@ -1,12 +1,11 @@
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
-from pages.templates import ModuleWidget
+from widgets.templates import ModuleWidget
 from device.dg4202 import DG4202
 from pages import factory, plotter
 from datetime import datetime, timedelta
 from PyQt6.QtCharts import QChart, QChartView, QLineSeries
 import pyqtgraph as pg
-from widgets.realtimeplot import RealTimePlotWidget
 
 NOT_FOUND_STRING = 'Device not found!'
 TIMER_INTERVAL = 1000.  # in ms

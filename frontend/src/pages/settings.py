@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import QLabel, QVBoxLayout
-from pages.templates import ModuleWidget
+from widgets.templates import ModuleWidget
 
 
 class SettingsPage(ModuleWidget):

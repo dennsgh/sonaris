@@ -10,7 +10,7 @@ import waitress
 from callbacks import main_callbacks
 from werkzeug.serving import make_server
 import sys
-from features.state_managers import DG4202Manager, StateManager
+from features.managers import DG4202Manager, StateManager
 from features.scheduler import Scheduler
 # At the top of the script:
 import pyvisa
@@ -24,7 +24,7 @@ def init_managers(args_dict: dict):
                                            factory.resource_manager)
     factory.DG4202SCHEDULER: Scheduler(function_map=factory.dg4202_manager.function_map,
                                        interval=0.001)
-    factory.state_manager.write_state({'last_known_device_uptime': None})
+    factory.state_manager.write_state({'dg_last_alive': None})
 
 
 def create_app(args_dict: dict):

@@ -4,21 +4,27 @@ import pyqtgraph as pg
 from PyQt6.QtWidgets import QApplication, QVBoxLayout, QWidget, QHBoxLayout, QDoubleSpinBox, QLabel, QPushButton, QGroupBox
 from PyQt6.QtCore import QTimer
 from device.edux1002a import EDUX1002A, EDUX1002ADetector, EDUX1002AEthernet, EDUX1002AUSB
-from pages.templates import ModuleWidget
+from widgets.templates import ModuleWidget
 import header
-from widgets.realtimeplot import RealTimePlotWidget
+from widgets.realtimeplot import RealtimeDisplay
+from device.data import DataBuffer
+from features.managers import EDUX1002AManager
 
 
 class OscilloscopeWidget(ModuleWidget):
 
-    def __init__(self, oscilloscope: EDUX1002A, channel=1, parent=None):
+    def __init__(self, edux1002a_manager: EDUX1002AManager, parent=None, tick: int = 200):
         super().__init__(parent)
-        self.oscilloscope = oscilloscope
-        self.channel = channel
-        self.tick = 50  # ms
+        self.edux1002a_manager = edux1002a_manager
+        self.tick = tick  # ms, for now, you can adjust this
         self.x_input = {1: None, 2: None}
         self.y_input = {1: None, 2: None}
         self.initUI()
+
+        # Timer setup for real-time data update
+        self.timer = pg.QtCore.QTimer()
+        self.timer.timeout.connect(self.update_data)
+        self.timer.start(self.tick)
 
     def update_spinbox_values(self, xRange, yRange, x_input, y_input):
         x_input.blockSignals(True)
@@ -127,7 +133,25 @@ class OscilloscopeWidget(ModuleWidget):
         self.setLayout(layout)
 
     def update_data(self):
-        pass
+        self.edux1002a_manager.buffer_ch1.update()
+        self.edux1002a_manager.buffer_ch2.update()
+
+        y1_data = self.edux1002a_manager.buffer_ch1.get_data()
+        y2_data = self.edux1002a_manager.buffer_ch2.get_data()
+        x1_data = np.arange(len(y1_data))
+        x2_data = np.arange(len(y2_data))
+
+        # Here we'll update both channels. If you want only one channel or different data for different channels, you'll need to modify this:
+        self.plot_data_1.setData(x1_data, y1_data)
+        self.plot_data_2.setData(x2_data, y2_data)
+
+    def freeze(self):
+        """Stop updating the waveform"""
+        self.timer.stop()
+
+    def unfreeze(self):
+        """Resume updating the waveform"""
+        self.timer.start(self.tick)
 
 
 if __name__ == "__main__":
