@@ -184,6 +184,8 @@ class DG4202Page(ModuleWidget):
         offset_input = QLineEdit(str(self.all_parameters[f"{channel}"]["waveform"]["offset"]))
         left_column_layout.addRow("Offset (V)", offset_input)
         plot_widget = pg.PlotWidget()
+        plot_widget.setLabel('left', 'Amplitude', units='V')  # Set the y-axis label
+        plot_widget.setLabel('bottom', 'Time', units='s')
         plot_data = plot_widget.plot([], pen="y")
         # Create a button for Set Waveform and connect it to on_update_waveform slot
         set_waveform_button = QPushButton(f"Set Waveform CH{channel}")
@@ -191,6 +193,7 @@ class DG4202Page(ModuleWidget):
             channel, waveform_type.currentText(), float(freq_input.text()), float(amp_input.text()),
             float(offset_input.text()), plot_data))
         left_column_layout.addRow(set_waveform_button)
+        self.update_waveform(channel, plot_data)
 
         # Right Column (Waveform Plot)
         # NOTE: Use a library like pyqtgraph or matplotlib for the plot.
@@ -290,10 +293,12 @@ class DG4202Page(ModuleWidget):
             status_string = f"[{datetime.now().isoformat()}] Waveform updated."
             # Assuming you have a status_label in your UI
             self.status_label.setText(status_string)
-            x_data, y_data = plotter.plot_waveform(waveform_type, frequency, amplitude, offset)
-
-            plot_data.setData(x_data, y_data)
-
+            self.update_waveform(channel, plot_data)
         else:
             # Update some status label or log if you have one
             self.status_label.setText(NOT_FOUND_STRING)
+
+    def update_waveform(self, channel, plot_data):
+        self.check_connection()
+        x_data, y_data = plotter.plot_waveform(params=self.all_parameters[f"{channel}"]["waveform"])
+        plot_data.setData(x_data, y_data)
