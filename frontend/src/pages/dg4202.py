@@ -2,10 +2,12 @@ from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from widgets.templates import ModuleWidget
 from device.dg4202 import DG4202
-from pages import factory, plotter
+from pages import plotter
 from datetime import datetime, timedelta
 from PyQt6.QtCharts import QChart, QChartView, QLineSeries
 import pyqtgraph as pg
+from features.managers import DG4202Manager
+import numpy as np
 
 NOT_FOUND_STRING = 'Device not found!'
 TIMER_INTERVAL = 1000.  # in ms
@@ -18,7 +20,8 @@ class DG4202Page(ModuleWidget):
 
     def check_connection(self) -> bool:
 
-        self.my_generator = factory.dg4202_manager.create_dg4202()
+        self.my_generator = self.dg4202_manager.get_dg4202()
+        self.all_parameters = self.dg4202_manager.data_source.query_data()
         if self.my_generator is not None:
             is_alive = self.my_generator.is_connection_alive()
             if not is_alive:
@@ -26,59 +29,14 @@ class DG4202Page(ModuleWidget):
             return is_alive
         return False
 
-    def get_all_parameters(self) -> bool:
-        """
-        Get all parameters for each channel from the waveform generator.
-
-        Returns:
-            bool: True if parameters are successfully retrieved, False otherwise.
-        """
-        if self.check_connection():
-            for channel in range(1, self.channel_count + 1):
-                self.all_parameters[f"{channel}"] = {
-                    "waveform": self.my_generator.get_waveform_parameters(channel),
-                    "mode": self.my_generator.get_mode(channel),
-                    "output_status": self.my_generator.get_output_status(channel)
-                }
-            self.all_parameters["connected"] = True
-            return True
-        else:
-            self.my_generator = None
-            for channel in range(1, self.channel_count + 1):
-                self.all_parameters[f"{channel}"] = {
-                    "waveform": {
-                        "waveform_type": "SIN",
-                        "frequency": 0.,
-                        "amplitude": 0.,
-                        "offset": 0.,
-                    },
-                    "mode": {
-                        "current_mode": "error",
-                        "parameters": {
-                            "off": "",
-                            "sweep": {
-                                "FSTART": 0,
-                                "FSTOP": 0,
-                                "TIME": 0,
-                                "RTIME": 0,
-                            },
-                            "burst": "",
-                            "off": "",
-                        }
-                    },
-                    "output_status": "OFF"
-                }
-            self.all_parameters["connected"] = False
-            return False
-
-    def __init__(self, parent=None, args_dict: dict = None):
+    def __init__(self, dg4202_manager: DG4202Manager, parent=None, args_dict: dict = None):
         super().__init__(parent=parent)
         self.args_dict = args_dict
         self.channel_count = 2
         self.link_channel = False
-        self.waveform_plot = {1: pg.PlotWidget(), 2: pg.PlotWidget()}
-        self.all_parameters = {}
-        self.get_all_parameters()
+        self.dg4202_manager = dg4202_manager
+        self.my_generator = self.dg4202_manager.get_dg4202()
+        self.all_parameters = self.dg4202_manager.data_source.query_data()
         self.create_widgets()
         # Init UI
         self.initUI()
@@ -104,8 +62,10 @@ class DG4202Page(ModuleWidget):
 
     def initUI(self):
         self.main_layout = QVBoxLayout()
+        self.check_connection()
         self.connection_status_label = QLabel(
-            "Connection Status:")  # Placeholder for connection status
+            f"Connection Status: {self.all_parameters['connected']}"
+        )  # Placeholder for connection status
         self.main_layout.addWidget(self.connection_status_label)
         self.status_label = QLabel("")
         self.main_layout.addWidget(self.status_label)
@@ -155,12 +115,16 @@ class DG4202Page(ModuleWidget):
         # Adding tabs for modes
         # Add more tabs as needed
         output_btn = QPushButton(f"Output CH{channel}")
+        output_btn.clicked.connect(lambda: self.toggle_output(output_btn, channel))
+        self.update_button_state(output_btn, channel)
         control_layout.addWidget(output_btn)
 
         timer_btn = QPushButton(f"Timer CH{channel}")
+        timer_btn.clicked.connect(timer_modal.exec)
         control_layout.addWidget(timer_btn)
 
         scheduler_btn = QPushButton(f"Scheduler CH{channel}")
+        scheduler_btn.clicked.connect(scheduler_modal.exec)
         control_layout.addWidget(scheduler_btn)
         # ... (more buttons/widgets to be added)
 
@@ -219,20 +183,20 @@ class DG4202Page(ModuleWidget):
         # Create input for Offset
         offset_input = QLineEdit(str(self.all_parameters[f"{channel}"]["waveform"]["offset"]))
         left_column_layout.addRow("Offset (V)", offset_input)
-
+        plot_widget = pg.PlotWidget()
+        plot_data = plot_widget.plot([], pen="y")
         # Create a button for Set Waveform and connect it to on_update_waveform slot
         set_waveform_button = QPushButton(f"Set Waveform CH{channel}")
-        set_waveform_button.clicked.connect(
-            lambda: self.on_update_waveform(channel, waveform_type.currentText(
-            ), float(freq_input.text()), float(amp_input.text()), float(offset_input.text())))
+        set_waveform_button.clicked.connect(lambda: self.on_update_waveform(
+            channel, waveform_type.currentText(), float(freq_input.text()), float(amp_input.text()),
+            float(offset_input.text()), plot_data))
         left_column_layout.addRow(set_waveform_button)
 
         # Right Column (Waveform Plot)
         # NOTE: Use a library like pyqtgraph or matplotlib for the plot.
         # Placeholder label for now
         right_column_layout = QVBoxLayout()
-        right_column_layout.addWidget(self.waveform_plot[channel],
-                                      alignment=Qt.AlignmentFlag.AlignCenter)
+        right_column_layout.addWidget(plot_widget, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Add the columns to the main layout
         left_widget = QWidget()
@@ -248,6 +212,40 @@ class DG4202Page(ModuleWidget):
         return channel_widget
 
     # You can add other methods, slots, signals as required for handling events, callbacks, etc.
+    def toggle_output(self, output_btn, channel: int):
+        """
+        Toggle the output for the given channel.
+
+        Parameters:
+            channel (int): The channel number.
+        """
+        print(channel)
+        if self.check_connection():
+            set_to = False if self.all_parameters[f"{channel}"]["output_status"] == 'ON' else True
+            print(f'{channel} is {self.all_parameters[f"{channel}"]["output_status"]} -> {set_to}')
+            self.my_generator.output_on_off(channel, set_to)
+            self.check_connection()  # updates dictionary
+            # Update the button state after toggling the output
+
+        self.update_button_state(output_btn, channel)
+
+    def update_button_state(self, output_btn, channel: int):
+        """
+            Update the button's appearance and text based on the output status.
+
+            Parameters:
+                output_btn (QPushButton): The output button to be updated.
+                channel (int): The channel number.
+            """
+        status = self.all_parameters[f"{channel}"]["output_status"]
+        if status == 'ON':
+            output_btn.setStyleSheet("background-color: green; color: white;")
+            output_btn.setText(f"Output CH{channel} ON")
+        else:
+            output_btn.setStyleSheet("background-color: none; color: black;")
+            output_btn.setText(f"Output CH{channel} OFF")
+
+        print(f"Toggling output for CH{channel}")
 
     def on_tab_changed(self, index):
         # Placeholder for an API call. Replace with actual logic later.
@@ -260,7 +258,7 @@ class DG4202Page(ModuleWidget):
         # Connect the signal
 
     def on_update_waveform(self, channel: int, waveform_type: str, frequency: float,
-                           amplitude: float, offset: float):
+                           amplitude: float, offset: float, plot_data):
         """
         Update the waveform parameters and plot.
 
@@ -270,9 +268,9 @@ class DG4202Page(ModuleWidget):
             frequency (float): The selected frequency.
             amplitude (float): The selected amplitude.
             offset (float): The selected offset.
+            plot_data (float): Plot data reference.
         """
-
-        if self.get_all_parameters():
+        if self.check_connection():
             frequency = frequency or float(
                 self.all_parameters[f"{channel}"]["waveform"]["frequency"])
             amplitude = amplitude or float(
@@ -292,9 +290,9 @@ class DG4202Page(ModuleWidget):
             status_string = f"[{datetime.now().isoformat()}] Waveform updated."
             # Assuming you have a status_label in your UI
             self.status_label.setText(status_string)
-            figure = plotter.plot_waveform(waveform_type, frequency, amplitude, offset)
-            self.waveform_plot[channel] = QChartView(figure).setFixedSize(300, 300)
-            self.waveform_plot.update()
+            x_data, y_data = plotter.plot_waveform(waveform_type, frequency, amplitude, offset)
+
+            plot_data.setData(x_data, y_data)
 
         else:
             # Update some status label or log if you have one

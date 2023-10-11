@@ -57,17 +57,7 @@ def plot_waveform(waveform_type: Optional[str] = None,
     else:
         y_values = np.zeros_like(x_values)
 
-    # Create a plotly figure with x and y values
-    series = QLineSeries()
-    for x, y in zip(x_values, y_values):
-        series.append(x, y)
-
-    chart = QChart()
-    chart.addSeries(series)
-    chart.createDefaultAxes()
-    chart.legend().setVisible(False)
-
-    return chart
+    return x_values, y_values
 
 
 def plot_sweep(start_frequency: Optional[float] = None,
@@ -106,10 +96,4 @@ def plot_sweep(start_frequency: Optional[float] = None,
     series = QLineSeries()
     for t, y in zip(t_values, y_values):
         series.append(t, y)
-
-    chart = QChart()
-    chart.addSeries(series)
-    chart.createDefaultAxes()
-    chart.legend().setVisible(False)
-
-    return chart
+    return t_values, y_values

@@ -5,7 +5,7 @@ import time
 def check_connection(args_dict: dict) -> bool:
 
     if my_generator is not None:
-        is_alive = factory.create_dg4202(args_dict)
+        is_alive = factory.get_dg4202(args_dict)
         if not is_alive:
             factory.dg_last_alive = None
             my_generator = None

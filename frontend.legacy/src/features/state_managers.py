@@ -93,7 +93,7 @@ class DG4202Manager:
                               })
         return function_map
 
-    def create_dg4202(self) -> DG4202:
+    def get_dg4202(self) -> DG4202:
         """
         Function to create a DG4202 device. 
         Updates the state depending on the device creation.

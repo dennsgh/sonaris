@@ -38,7 +38,7 @@ class MainWindow(ModularMainWindow):
         # ---------------------------SIDEBAR SETUP------------------------------ #
         self.sidebar = Sidebar(self)
         self.sidebar_dict: Dict[str, QWidget] = {
-            "DG4202": dg4202.DG4202Page(self, args_dict=args_dict),
+            "DG4202": dg4202.DG4202Page(factory.dg4202_manager, self, args_dict=args_dict),
             "Settings": settings.SettingsPage(self, args_dict),
         }
         self.sidebar.addItems(self.sidebar_dict.keys())  # Add strings to sidebar items
@@ -71,7 +71,7 @@ def create_app(args_dict: dict) -> (QApplication, QMainWindow):
 
     app = QApplication([])
     window = MainWindow(args_dict)
-    apply_stylesheet(app, theme='dark_teal.xml')
+    apply_stylesheet(app, theme='dark_blue.xml')
     window.setWindowTitle("mrilabs")
     window.show()
     return app, window

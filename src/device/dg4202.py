@@ -6,6 +6,7 @@ from typing import Optional, Union, List, Tuple
 from werkzeug.serving import make_server
 from device.interface import Interface
 from pyvisa.resources import Resource
+from device.data import DataSource
 
 
 class DG4202Detector:
@@ -471,6 +472,67 @@ class DG4202MockInterface(Interface):
         return self.state.get(command, "").split(" ")[-1]
 
 
+class DG4202DataSource(DataSource):
+
+    def __init__(self, device: DG4202):
+        super().__init__(device)
+        self.all_parameters = {}
+        self.default_dict = {"connected": None}
+        self.device: DG4202 = device
+        for channel in range(1, 3):
+            self.default_dict[f"{channel}"] = {
+                "waveform": {
+                    "waveform_type": "SIN",
+                    "frequency": 0.,
+                    "amplitude": 0.,
+                    "offset": 0.,
+                },
+                "mode": {
+                    "current_mode": "error",
+                    "parameters": {
+                        "off": "",
+                        "sweep": {
+                            "FSTART": 0,
+                            "FSTOP": 0,
+                            "TIME": 0,
+                            "RTIME": 0,
+                        },
+                        "burst": "",
+                        "off": "",
+                    }
+                },
+                "output_status": "OFF"
+            }
+
+    def query_data(self) -> dict:
+        """
+        Get all parameters for each channel from the waveform generator.
+
+        Returns:
+            dict: Dictionary containing parameters of the device.
+        """
+        if self.device:
+            is_alive = self.device.is_connection_alive()
+
+            if is_alive:
+                for channel in range(1, 3):
+                    self.all_parameters[f"{channel}"] = {
+                        "waveform": self.device.get_waveform_parameters(channel),
+                        "mode": self.device.get_mode(channel),
+                        "output_status": self.device.get_output_status(channel)
+                    }
+                self.all_parameters["connected"] = True
+
+            else:
+                self.device = None
+                self.all_parameters = self.default_dict
+                self.all_parameters["connected"] = False
+
+        else:
+            self.all_parameters = self.default_dict
+            self.all_parameters["connected"] = False
+        return self.all_parameters
+
+
 if __name__ == "__main__":
-    my_generator = DG4202Detector().detect_device()
-    print(my_generator.get_sweep_parameters(1))
+    print(DG4202DataSource(None).query_data())

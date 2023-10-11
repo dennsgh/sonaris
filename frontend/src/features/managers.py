@@ -1,5 +1,5 @@
 import json
-from device.dg4202 import DG4202, DG4202Detector, DG4202Mock
+from device.dg4202 import DG4202, DG4202Detector, DG4202Mock, DG4202DataSource
 from datetime import datetime, timedelta
 import time
 from features.scheduler import Scheduler, FunctionMap
@@ -53,6 +53,7 @@ class DG4202Manager:
         self._mock_device = DG4202Mock()
         self.function_map = self._initialize_function_map()  # required for scheduler
         self.rm = resource_manager
+        self.data_source = None
         self._initialize_device()
 
     def _initialize_device(self):
@@ -60,6 +61,8 @@ class DG4202Manager:
             self.dg4202_device = self._mock_device
         else:
             self.dg4202_device = DG4202Detector(resource_manager=self.rm).detect_device()
+
+        self.data_source = DG4202DataSource(self.dg4202_device)
 
     def _output_on_off_wrapper(self, *args, **kwargs):
         if not self.dg4202_device.is_connection_alive():
@@ -97,7 +100,7 @@ class DG4202Manager:
                               })
         return function_map
 
-    def create_dg4202(self) -> DG4202:
+    def get_dg4202(self) -> DG4202:
         """
         Function to create a DG4202 device. 
         Updates the state depending on the device creation.
@@ -114,13 +117,12 @@ class DG4202Manager:
                 # Simulate dead device
                 state["dg_last_alive"] = None
                 self.state_manager.write_state(state)
-                return None
+                self.dg4202_device = None
             else:
                 if state["dg_last_alive"] is None:
                     state["dg_last_alive"] = time.time()
                 self.state_manager.write_state(state)
                 self.dg4202_device = self._mock_device
-                return self.dg4202_device
         else:
             self.dg4202_device = DG4202Detector(resource_manager=self.rm).detect_device()
             if self.dg4202_device is None:
@@ -129,7 +131,8 @@ class DG4202Manager:
                 if state["dg_last_alive"] is None:
                     state["dg_last_alive"] = time.time()
             self.state_manager.write_state(state)
-            return self.dg4202_device
+        self.data_source = DG4202DataSource(self.dg4202_device)
+        return self.dg4202_device
 
     def get_device_uptime(self, args_dict: dict):
         """
@@ -197,7 +200,7 @@ class EDUX1002AManager:
                               default_kwargs={'channel': 2})
         return function_map
 
-    def create_edux1002a(self) -> EDUX1002A:
+    def get_edux1002a(self) -> EDUX1002A:
         """
         Function to create an EDUX1002A device.
         Updates the state depending on the device creation.

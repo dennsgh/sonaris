@@ -129,29 +129,44 @@ class OscilloscopeWidget(ModuleWidget):
 
         channel2_ui, self.plot_data_2 = self._create_channel_ui(2)
         layout.addWidget(channel2_ui)
-
+        # Create the freeze/unfreeze button
+        self.freeze_button = QPushButton("Freeze")
+        self.freeze_button.clicked.connect(self.toggle_freeze)
+        layout.addWidget(self.freeze_button)
         self.setLayout(layout)
 
     def update_data(self):
-        self.edux1002a_manager.buffer_ch1.update()
-        self.edux1002a_manager.buffer_ch2.update()
+        try:
+            self.edux1002a_manager.buffer_ch1.update()
+            self.edux1002a_manager.buffer_ch2.update()
 
-        y1_data = self.edux1002a_manager.buffer_ch1.get_data()
-        y2_data = self.edux1002a_manager.buffer_ch2.get_data()
-        x1_data = np.arange(len(y1_data))
-        x2_data = np.arange(len(y2_data))
+            y1_data = self.edux1002a_manager.buffer_ch1.get_data()
+            y2_data = self.edux1002a_manager.buffer_ch2.get_data()
+            x1_data = np.arange(len(y1_data))
+            x2_data = np.arange(len(y2_data))
 
-        # Here we'll update both channels. If you want only one channel or different data for different channels, you'll need to modify this:
-        self.plot_data_1.setData(x1_data, y1_data)
-        self.plot_data_2.setData(x2_data, y2_data)
+            # Here we'll update both channels. If you want only one channel or different data for different channels, you'll need to modify this:
+            self.plot_data_1.setData(x1_data, y1_data)
+            self.plot_data_2.setData(x2_data, y2_data)
+        except Exception as e:
+            print(f"[Oscilloscope]{e}")
+            self.freeze()
 
     def freeze(self):
         """Stop updating the waveform"""
+        self.freeze_button.setText("Unfreeze")
         self.timer.stop()
 
     def unfreeze(self):
         """Resume updating the waveform"""
         self.timer.start(self.tick)
+        self.freeze_button.setText("Freeze")
+
+    def toggle_freeze(self):
+        if self.timer.isActive():
+            self.freeze()
+        else:
+            self.unfreeze()
 
 
 if __name__ == "__main__":
