@@ -32,7 +32,7 @@ class DG4202Detector:
                     device = self.rm.open_resource(resource)
                     idn = device.query("*IDN?")
                     if "DG4202" in idn:
-                        return DG4202(DG4202Ethernet(resource.split('::')[1]))
+                        return DG4202(DG4202Ethernet(device))
                 except pyvisa.errors.VisaIOError:
                     pass
             elif re.match("^USB", resource):
@@ -40,7 +40,7 @@ class DG4202Detector:
                     device = self.rm.open_resource(resource)
                     idn = device.query("*IDN?")
                     if "DG4202" in idn:
-                        return DG4202(DG4202USB(resource))
+                        return DG4202(DG4202USB(device))
                 except pyvisa.errors.VisaIOError:
                     pass
 
@@ -49,9 +49,8 @@ class DG4202Detector:
 
 class DG4202Ethernet(Interface):
 
-    def __init__(self, ip_address: str):
-        rm = pyvisa.ResourceManager()
-        self.inst = rm.open_resource(f'TCPIP::{ip_address}::INSTR')
+    def __init__(self, resource: Resource):
+        super().__init__(resource)
 
     def write(self, command: str) -> None:
         self.inst.write(command)
@@ -62,9 +61,8 @@ class DG4202Ethernet(Interface):
 
 class DG4202USB(Interface):
 
-    def __init__(self, resource_name: str):
-        rm = pyvisa.ResourceManager()
-        self.inst: Resource = rm.open_resource(resource_name)
+    def __init__(self, resource: Resource):
+        super().__init__(resource)
 
     def write(self, command: str) -> None:
         self.inst.write(command)

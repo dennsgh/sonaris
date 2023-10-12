@@ -155,7 +155,7 @@ class DG4202Manager:
 
 class EDUX1002AManager:
 
-    def __init__(self, state_manager: "StateManager", args_dict: dict,
+    def __init__(self, state_manager: StateManager, args_dict: dict,
                  resource_manager: pyvisa.ResourceManager):
         self.state_manager = state_manager
         self.args_dict = args_dict

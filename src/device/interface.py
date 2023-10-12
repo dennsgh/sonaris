@@ -1,7 +1,12 @@
 import abc
 
+import pyvisa
+
 
 class Interface(abc.ABC):
+
+    def __init__(self, resource: pyvisa.Resource):
+        self.inst = resource
 
     @abc.abstractmethod
     def write(self, command: str) -> None:

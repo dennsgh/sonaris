@@ -28,24 +28,21 @@ class EDUX1002ADetector:
 
         return None
 
-    def _detect_via_protocol(self, resource: str, protocol_cls: type) -> Optional['EDUX1002A']:
+    def _detect_via_protocol(self, resource_name: str, protocol_cls: type) -> Optional['EDUX1002A']:
         try:
-            device = self.rm.open_resource(resource)
+            device = self.rm.open_resource(resource_name)
             idn = device.query("*IDN?")
             if "EDU-X 1002A" in idn:
-                if issubclass(protocol_cls, EDUX1002AEthernet):
-                    return EDUX1002A(protocol_cls(resource.split('::')[1]))
-                return EDUX1002A(protocol_cls(resource))
+                return protocol_cls(device)
         except pyvisa.errors.VisaIOError as e:
-            print(f"Failed to connect with resource {resource}. Error: {e}")
+            print(f"Failed to connect with resource {resource_name}. Error: {e}")
         return None
 
 
 class EDUX1002AEthernet(Interface):
 
-    def __init__(self, ip_address: str):
-        rm = pyvisa.ResourceManager()
-        self.inst = rm.open_resource(f'TCPIP::{ip_address}::INSTR')
+    def __init__(self, resource: Resource):
+        super().__init__(resource)
 
     def write(self, command: str) -> None:
         self.inst.write(command)
@@ -56,9 +53,8 @@ class EDUX1002AEthernet(Interface):
 
 class EDUX1002AUSB(Interface):
 
-    def __init__(self, resource_name: str):
-        rm = pyvisa.ResourceManager()
-        self.inst: Resource = rm.open_resource(resource_name)
+    def __init__(self, resource: Resource):
+        super().__init__(resource)
 
     def write(self, command: str) -> None:
         self.inst.write(command)
@@ -70,8 +66,7 @@ class EDUX1002AUSB(Interface):
 class EDUX1002A:
     """Keysight EDUX1002A hardware driver/wrapper."""
 
-    def __init__(self, interface, buffer_size: int = 512, timeout=20000):
-        self.buffer = deque(maxlen=buffer_size)
+    def __init__(self, interface: Interface, timeout=20000):
         self.interface = interface
         self.interface.inst.timeout = timeout
 
@@ -119,10 +114,6 @@ class EDUX1002A:
         voltage = waveform_data * y_increment + y_origin
 
         return time, voltage
-
-    def update_buffer(self, channel: int = 1):
-        _, voltage = self.get_waveform(channel)
-        self.buffer.append(voltage)
 
     def set_timeout(self, timeout):
         self.interface.inst.timeout = timeout
