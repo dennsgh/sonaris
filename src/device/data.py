@@ -18,6 +18,7 @@ class DataBuffer:
     def __init__(self, data_source: DataSource, buffer_size: int = 128):
         self.buffer = deque(maxlen=buffer_size)
         self.data_source = data_source
+        self.buffer_size = buffer_size
 
     def update(self):
         new_data = self.data_source.query_data()

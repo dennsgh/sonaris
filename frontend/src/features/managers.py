@@ -156,13 +156,13 @@ class DG4202Manager:
 class EDUX1002AManager:
 
     def __init__(self, state_manager: StateManager, args_dict: dict,
-                 resource_manager: pyvisa.ResourceManager):
+                 resource_manager: pyvisa.ResourceManager, buffer_size: int):
         self.state_manager = state_manager
         self.args_dict = args_dict
         self.rm = resource_manager
         self._mock_device = None  # TODO: create!
-        self.buffer_ch1 = None
-        self.buffer_ch2 = None
+        self.buffers = {1: None, 2: None}
+        self.buffer_size = buffer_size
         self._initialize_device()
         self.function_map = self._initialize_function_map()  # required for scheduler
 
@@ -172,8 +172,10 @@ class EDUX1002AManager:
         if not self.edux1002a_device:
             print("Failed to initialize EDUX1002A device.")
             return
-        self.buffer_ch1 = DataBuffer(EDUX1002ADataSource(self.edux1002a_device, 1), 1)
-        self.buffer_ch2 = DataBuffer(EDUX1002ADataSource(self.edux1002a_device, 2), 2)
+        self.buffers = {
+            1: DataBuffer(EDUX1002ADataSource(self.edux1002a_device, 1), self.buffer_size),
+            2: DataBuffer(EDUX1002ADataSource(self.edux1002a_device, 2), self.buffer_size)
+        }
 
     def is_device_alive(self) -> bool:
         try:
@@ -227,8 +229,10 @@ class EDUX1002AManager:
             if self.edux1002a_device is None:
                 state["edux_last_alive"] = None  # Reset the uptime
             else:
-                self.buffer_ch1 = DataBuffer(EDUX1002ADataSource(self.edux1002a_device, 1), 1)
-                self.buffer_ch2 = DataBuffer(EDUX1002ADataSource(self.edux1002a_device, 2), 2)
+                self.buffers = {
+                    1: DataBuffer(EDUX1002ADataSource(self.edux1002a_device, 1), self.buffer_size),
+                    2: DataBuffer(EDUX1002ADataSource(self.edux1002a_device, 2), self.buffer_size)
+                }
                 if state["edux_last_alive"] is None:
                     state["edux_last_alive"] = time.time()
             self.state_manager.write_state(state)

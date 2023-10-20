@@ -12,13 +12,16 @@ from widgets.sidebar import Sidebar
 from widgets.oscilloscope import OscilloscopeWidget
 from widgets.templates import *
 
+OSCILLOSCOPE_BUFFER_SIZE = 512
+
 
 def init_managers(args_dict: dict):
     factory.resource_manager = pyvisa.ResourceManager()
     factory.state_manager = StateManager()
     factory.edux1002a_manager = EDUX1002AManager(state_manager=factory.state_manager,
                                                  args_dict=args_dict,
-                                                 resource_manager=factory.resource_manager)
+                                                 resource_manager=factory.resource_manager,
+                                                 buffer_size=OSCILLOSCOPE_BUFFER_SIZE)
     factory.dg4202_manager = DG4202Manager(factory.state_manager,
                                            args_dict=args_dict,
                                            resource_manager=factory.resource_manager)

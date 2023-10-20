@@ -4,7 +4,7 @@ import abc
 import re
 from typing import Optional, Union, List, Tuple
 from werkzeug.serving import make_server
-from device.interface import Interface
+from device.interface import Interface, USBInterface, EthernetInterface
 from pyvisa.resources import Resource
 from device.data import DataSource
 
@@ -32,7 +32,7 @@ class DG4202Detector:
                     device = self.rm.open_resource(resource)
                     idn = device.query("*IDN?")
                     if "DG4202" in idn:
-                        return DG4202(DG4202Ethernet(device))
+                        return DG4202(EthernetInterface(device))
                 except pyvisa.errors.VisaIOError:
                     pass
             elif re.match("^USB", resource):
@@ -40,35 +40,11 @@ class DG4202Detector:
                     device = self.rm.open_resource(resource)
                     idn = device.query("*IDN?")
                     if "DG4202" in idn:
-                        return DG4202(DG4202USB(device))
+                        return DG4202(USBInterface(device))
                 except pyvisa.errors.VisaIOError:
                     pass
 
         return None
-
-
-class DG4202Ethernet(Interface):
-
-    def __init__(self, resource: Resource):
-        super().__init__(resource)
-
-    def write(self, command: str) -> None:
-        self.inst.write(command)
-
-    def read(self, command: str) -> str:
-        return self.inst.query(command)
-
-
-class DG4202USB(Interface):
-
-    def __init__(self, resource: Resource):
-        super().__init__(resource)
-
-    def write(self, command: str) -> None:
-        self.inst.write(command)
-
-    def read(self, command: str) -> str:
-        return self.inst.query(command)
 
 
 class DG4202:

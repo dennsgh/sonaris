@@ -3,7 +3,7 @@ import numpy as np
 import pyqtgraph as pg
 from PyQt6.QtWidgets import QApplication, QVBoxLayout, QWidget, QHBoxLayout, QDoubleSpinBox, QLabel, QPushButton, QGroupBox
 from PyQt6.QtCore import QTimer
-from device.edux1002a import EDUX1002A, EDUX1002ADetector, EDUX1002AEthernet, EDUX1002AUSB
+from device.edux1002a import EDUX1002A, EDUX1002ADetector
 from widgets.templates import ModuleWidget
 import header
 from widgets.realtimeplot import RealtimeDisplay
@@ -13,18 +13,31 @@ from features.managers import EDUX1002AManager
 
 class OscilloscopeWidget(ModuleWidget):
 
-    def __init__(self, edux1002a_manager: EDUX1002AManager, parent=None, tick: int = 200):
+    def __init__(self, edux1002a_manager: EDUX1002AManager, parent=None, tick: int = 100):
         super().__init__(parent)
         self.edux1002a_manager = edux1002a_manager
+        #self.edux1002a_manager.edux1002a_device.interface.debug = True
         self.tick = tick  # ms, for now, you can adjust this
+        self.active_channel = 1
         self.x_input = {1: None, 2: None}
         self.y_input = {1: None, 2: None}
         self.initUI()
-
         # Timer setup for real-time data update
         self.timer = pg.QtCore.QTimer()
         self.timer.timeout.connect(self.update_data)
-        self.timer.start(self.tick)
+        self.configuration()
+        self.timer.stop()
+
+    def configuration(self):
+        """configuration
+        """
+        self.edux1002a_manager.edux1002a_device.set_acquisition_type("AVERage")
+        self.edux1002a_manager.edux1002a_device.set_waveform_return_type("AVERage")
+        self.edux1002a_manager.edux1002a_device.set_waveform_format("ASCII")
+        self.edux1002a_manager.edux1002a_device.set_acquisition_complete(100)
+        self.edux1002a_manager.edux1002a_device.set_acquisition_count(8)
+        self.edux1002a_manager.edux1002a_device.set_waveform_points(
+            self.edux1002a_manager.buffer_size)
 
     def update_spinbox_values(self, xRange, yRange, x_input, y_input):
         x_input.blockSignals(True)
@@ -111,7 +124,12 @@ class OscilloscopeWidget(ModuleWidget):
         handler = self.make_range_changed_handler(self.x_input[channel], self.y_input[channel])
         plot_widget.getViewBox().sigRangeChanged.connect(handler)
 
-        return channel_group, plot_data
+        # Inside _create_channel_ui, let's bind the channel buttons to the method to change channels
+        channel_button = QPushButton(f"Channel {channel}")
+        channel_button.clicked.connect(lambda: self.set_active_channel(channel))
+        channel_layout.addWidget(channel_button)
+
+        return channel_group, plot_data, channel_button
 
     def make_range_changed_handler(self, x_input, y_input):
 
@@ -123,44 +141,65 @@ class OscilloscopeWidget(ModuleWidget):
 
     def initUI(self, **kwargs):
         layout = QHBoxLayout()
-
-        channel1_ui, self.plot_data_1 = self._create_channel_ui(1)
+        self.plot_data = {1: None, 2: None}
+        channel1_ui, self.plot_data[1], self.channel1_button = self._create_channel_ui(1)
         layout.addWidget(channel1_ui)
 
-        channel2_ui, self.plot_data_2 = self._create_channel_ui(2)
+        channel2_ui, self.plot_data[2], self.channel2_button = self._create_channel_ui(2)
         layout.addWidget(channel2_ui)
+
+        # Initialize channel button styles
+        self.update_channel_button_styles()
+        button_layout = QVBoxLayout()
+
         # Create the freeze/unfreeze button
-        self.freeze_button = QPushButton("Freeze")
+        self.freeze_button = QPushButton("START")
         self.freeze_button.clicked.connect(self.toggle_freeze)
-        layout.addWidget(self.freeze_button)
+        button_layout.addWidget(self.freeze_button)
+
+        self.auto_button = QPushButton("AUTO")
+        self.auto_button.clicked.connect(self.edux1002a_manager.edux1002a_device.autoscale)
+        button_layout.addWidget(self.auto_button)
         self.setLayout(layout)
+
+        testbutton = QPushButton("Update")
+        testbutton.clicked.connect(self.update_data)
+        button_layout.addWidget(testbutton)
+        layout.addLayout(button_layout)
+
+    def update_channel_button_styles(self):
+        if self.active_channel == 1:
+            self.channel1_button.setStyleSheet("background-color: yellow")
+            self.channel2_button.setStyleSheet("")
+        else:
+            self.channel2_button.setStyleSheet("background-color: yellow")
+            self.channel1_button.setStyleSheet("")
+
+    def set_active_channel(self, channel: int):
+        self.active_channel = channel
+        self.edux1002a_manager.edux1002a_device.setup_waveform_readout(channel)
+        self.update_channel_button_styles()
 
     def update_data(self):
         try:
-            self.edux1002a_manager.buffer_ch1.update()
-            self.edux1002a_manager.buffer_ch2.update()
-
-            y1_data = self.edux1002a_manager.buffer_ch1.get_data()
-            y2_data = self.edux1002a_manager.buffer_ch2.get_data()
-            x1_data = np.arange(len(y1_data))
-            x2_data = np.arange(len(y2_data))
-
-            # Here we'll update both channels. If you want only one channel or different data for different channels, you'll need to modify this:
-            self.plot_data_1.setData(x1_data, y1_data)
-            self.plot_data_2.setData(x2_data, y2_data)
+            self.edux1002a_manager.buffers[self.active_channel].update()
+            voltage = self.edux1002a_manager.buffers[self.active_channel].get_data()
+            time = np.arange(len(voltage))
+            self.plot_data[self.active_channel].setData(time, voltage)
         except Exception as e:
             print(f"[Oscilloscope]{e}")
             self.freeze()
 
     def freeze(self):
-        """Stop updating the waveform"""
-        self.freeze_button.setText("Unfreeze")
+        """Stop updating the waveform
+        """
+        self.freeze_button.setText("START")
         self.timer.stop()
 
     def unfreeze(self):
         """Resume updating the waveform"""
         self.timer.start(self.tick)
-        self.freeze_button.setText("Freeze")
+        self.freeze_button.setText("STOP")
 
     def toggle_freeze(self):
         if self.timer.isActive():
