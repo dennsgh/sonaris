@@ -35,8 +35,10 @@ def plot_waveform(waveform_type: Optional[str] = None,
 
     # Generate x values from 0 to 1 with 1000 points
     # Assuming one full period of the waveform, change 1/frequency to display multiple periods if required.
-    x_values = np.linspace(0, 4 / frequency, 1000)
-
+    if isinstance(frequency, float) and frequency == 0.0:
+        x_values = np.linspace(0, 1, 1000)
+    else:
+        x_values = np.linspace(0, 4 / frequency, 1000)
     # Generate y values based on the waveform type
     if waveform_type == 'SIN':
         y_values = amplitude * np.sin(2 * np.pi * frequency * x_values) + offset
