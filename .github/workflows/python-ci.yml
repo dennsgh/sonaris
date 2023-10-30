@@ -31,6 +31,7 @@ jobs:
         pip install pipenv 
         pipenv install --dev
         pip install flake8 pytest
+        sudo apt install python3-dotenv-cli
         source ./etc/environment.sh
     - name: Lint with flake8
       run: |
