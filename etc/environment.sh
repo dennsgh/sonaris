@@ -24,14 +24,12 @@ elif [[ "$OSTYPE" == "cygwin" ]] || [[ "$OSTYPE" == "msys" ]]; then
 else
     export PYTHONPATH="$PYTHONPATH:$WORKINGDIR/src:$WORKINGDIR/frontend/src"
 fi
-# Determine which dotenv to use
-if gem list dotenv -i > /dev/null 2>&1; then
-    # If Ruby dotenv exists, use Python dotenv explicitly
-    dotenv_command="/usr/bin/dotenv" # Replace this with your actual python dotenv command if different
+# Check if ~/.local/bin/dotenv exists
+if [ -f "$HOME/.local/bin/dotenv" ]; then
+    dotenv_command="$HOME/.local/bin/dotenv"
 else
-    dotenv_command="dotenv" # Assuming this defaults to the correct dotenv
+    dotenv_command="dotenv" # Fallback to default dotenv if the specific path does not exist
 fi
-
 # Now use the chosen dotenv command
 $dotenv_command -f "$WORKINGDIR/.env" set WORKINGDIR "$WORKINGDIR"
 $dotenv_command -f "$WORKINGDIR/.env" set CONFIG "$CONFIG"
