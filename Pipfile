@@ -13,6 +13,8 @@ pyqt6 = "*"
 pyqt6-charts = "*"
 pyqtgraph = "*"
 python-dotenv = {extras = ["cli"], version = "*"}
+requests = "*"
+flask = "*"
 
 [dev-packages]
 

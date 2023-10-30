@@ -40,9 +40,8 @@ class Interface(abc.ABC):
 class EthernetInterface(Interface):
 
     def __init__(self, resource: pyvisa.Resource):
-        ip_address = resource.split("::")[0].split("TCPIP")[
-            1]  # Extract IP from the resource string
-        super().__init__(resource, address=ip_address)
+        self.ip_address = resource.resource_name.split("::")[1]
+        super().__init__(resource, address=self.ip_address)
 
     def write(self, command: str) -> None:
         self.inst.write(command)
@@ -58,8 +57,8 @@ class EthernetInterface(Interface):
 class USBInterface(Interface):
 
     def __init__(self, resource: pyvisa.Resource):
-        usb_address = resource  # You can further parse the resource string if needed
-        super().__init__(resource, address=usb_address)
+        self.usb_address = resource  # You can further parse the resource string if needed
+        super().__init__(resource, address=self.usb_address)
 
     def write(self, command: str) -> None:
         self.inst.write(command)
