@@ -28,9 +28,8 @@ jobs:
     - name: Install dependencies
       run: |
         pip install --upgrade pip
-        pip install pipenv "python-dotenv[cli]"
-        pipenv install --dev
-        pip install flake8 pytest
+        pip install pipenv "python-dotenv[cli]" flake8 pytest
+        pipenv install --deploy --system
         sudo apt install python3-dotenv-cli
         source ./etc/environment.sh
     - name: Lint with flake8
