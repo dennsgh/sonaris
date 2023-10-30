@@ -4,15 +4,15 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-dash = "*"
-waitress = "*"
 pandas = "*"
 numpy = "*"
 plotly = "*"
-dash-bootstrap-components = "*"
 pyvisa = "*"
 pathlib = "*"
 python-dotenv = {version = "*", extras = ["cli"]}
+pyqt6 = "*"
+pyqt6-charts = "*"
+pyqtgraph = "*"
 
 [dev-packages]
 
