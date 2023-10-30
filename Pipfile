@@ -9,10 +9,10 @@ numpy = "*"
 plotly = "*"
 pyvisa = "*"
 pathlib = "*"
-python-dotenv = {version = "*", extras = ["cli"]}
 pyqt6 = "*"
 pyqt6-charts = "*"
 pyqtgraph = "*"
+python-dotenv = {extras = ["cli"], version = "*"}
 
 [dev-packages]
 
