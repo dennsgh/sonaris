@@ -28,9 +28,9 @@ jobs:
     - name: Install dependencies
       run: |
         pip install --upgrade pip
-        pip install pipenv
+        pip install pipenv 
         pipenv install --dev
-
+        pip install flake8
     - name: Lint with flake8
       run: |
         # Stop the build if there are Python syntax errors or undefined names
