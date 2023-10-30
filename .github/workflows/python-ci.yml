@@ -27,7 +27,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install --upgrade pip
+        cat Pipfile
         pip install pipenv "python-dotenv[cli]" flake8 pytest
         pipenv install --deploy --system
         sudo apt install python3-dotenv-cli
