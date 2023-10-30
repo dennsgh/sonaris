@@ -30,7 +30,7 @@ jobs:
         pip install --upgrade pip
         pip install pipenv 
         pipenv install --dev
-        pip install flake8
+        pip install flake8 pytest
     - name: Lint with flake8
       run: |
         # Stop the build if there are Python syntax errors or undefined names
