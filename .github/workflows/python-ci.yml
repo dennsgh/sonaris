@@ -31,6 +31,7 @@ jobs:
         pip install pipenv 
         pipenv install --dev
         pip install flake8 pytest
+        source ./etc/environment.sh
     - name: Lint with flake8
       run: |
         # Stop the build if there are Python syntax errors or undefined names
