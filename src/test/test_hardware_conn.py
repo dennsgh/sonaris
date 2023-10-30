@@ -1,5 +1,5 @@
 import pytest
-from device.dg4202 import DG4202Detector, DG4202Ethernet, DG4202USB
+from device.dg4202 import DG4202Detector, Interface, EthernetInterface, USBInterface
 import pyvisa
 
 
@@ -10,8 +10,8 @@ def test_DG4202Detector_detect_device():
 
     # Check that the returned object is not None and of the correct type
     assert detected_device is not None
-    assert isinstance(detected_device.interface, DG4202Ethernet) or isinstance(
-        detected_device.interface, DG4202USB)
+    assert isinstance(detected_device.interface, EthernetInterface) or isinstance(
+        detected_device.interface, USBInterface)
 
 
 """
