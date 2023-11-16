@@ -1,4 +1,5 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton
+
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton 
 import pages.factory as factory
 
 from PyQt6.QtWidgets import QMessageBox

@@ -14,7 +14,7 @@ class MainMenuBar(QMenuBar):
         # File Menu
         fileMenu = QMenu("&File", self)
         self.version_window = VersionWindow(self.parent())
-        self.device_window = DeviceWindow(self.parent())
+        self.device_window = DeviceWindow()
         self.addMenu(fileMenu)
 
         # Save State Action
