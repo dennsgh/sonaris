@@ -4,15 +4,23 @@ from pages import dg4202, factory, settings
 import argparse
 from qt_material import apply_stylesheet
 from typing import Dict, Optional
-
+import sys
 from features.managers import DG4202Manager, StateManager, EDUX1002AManager
 from features.scheduler import Scheduler
 import pyvisa
 from widgets.sidebar import Sidebar
 from widgets.oscilloscope import OscilloscopeWidget
 from widgets.templates import *
-
+from widgets.menu import MainMenuBar
+from PyQt6.QtWidgets import QMenu
+from PyQt6.QtGui import QIcon, QAction
 OSCILLOSCOPE_BUFFER_SIZE = 512
+
+
+def signal_handler(signal, frame):
+    print("Exit signal detected.")
+    # Perform additional error handling actions here if needed
+    sys.exit(0)
 
 
 def init_managers(args_dict: dict):
@@ -34,9 +42,9 @@ class MainWindow(ModularMainWindow):
 
     def __init__(self, args_dict: dict) -> None:
         super().__init__()
-
+        menu_bar = MainMenuBar(self)
         self.setWindowTitle("MRI Labs")
-
+        self.setMenuBar(menu_bar)
         # ---------------------------------------------------------------------- #
         # ---------------------------SIDEBAR SETUP------------------------------ #
         self.sidebar = Sidebar(self)
@@ -59,7 +67,6 @@ class MainWindow(ModularMainWindow):
         self.add_widget_to_left(self.sidebar)
         self.add_widget_to_middle(self.sidebar_content)  # Use the method from ModularMainWindow
         self.add_widget_to_top(self.oscilloscope)  # Use the method from ModularMainWindow
-
         # Connect the Sidebar's custom signal to the MainWindow's slot
         self.sidebar.pageSelected.connect(self.loadPage)
 

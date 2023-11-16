@@ -1,10 +1,7 @@
 import numpy as np
-import plotly.graph_objs as go
-from typing import Union, Optional, Dict
+from typing import  Optional
 
-from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
-from PyQt6.QtCharts import QChart, QChartView, QLineSeries
-from PyQt6.QtCore import Qt
+from PyQt6.QtCharts import QChart, QLineSeries
 
 
 def plot_waveform(waveform_type: Optional[str] = None,

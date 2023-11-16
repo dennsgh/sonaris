@@ -8,6 +8,7 @@ import os
 import pyvisa
 from device.data import DataBuffer
 from device.edux1002a import EDUX1002ADetector, EDUX1002A, EDUX1002ADataSource
+from unittest.mock import MagicMock
 
 DEFAULT_DICT = {"dg_last_alive": None, "edux_last_alive": None}
 
@@ -160,7 +161,7 @@ class EDUX1002AManager:
         self.state_manager = state_manager
         self.args_dict = args_dict
         self.rm = resource_manager
-        self._mock_device = None  # TODO: create!
+        self._mock_device = MagicMock()  # TODO: create!
         self.buffers = {1: None, 2: None}
         self.buffer_size = buffer_size
         self._initialize_device()
@@ -168,7 +169,10 @@ class EDUX1002AManager:
 
     def _initialize_device(self):
         detector = EDUX1002ADetector(resource_manager=self.rm)
-        self.edux1002a_device = detector.detect_device()
+        if self.args_dict['hardware_mock']:
+            self.edux1002a_device = self._mock_device
+        else:
+            self.edux1002a_device = detector.detect_device()
         if not self.edux1002a_device:
             print("Failed to initialize EDUX1002A device.")
             return
