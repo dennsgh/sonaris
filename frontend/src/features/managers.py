@@ -101,7 +101,7 @@ class DG4202Manager:
                               })
         return function_map
 
-    def get_dg4202(self) -> DG4202:
+    def get_device(self) -> DG4202:
         """
         Function to create a DG4202 device. 
         Updates the state depending on the device creation.
@@ -206,7 +206,7 @@ class EDUX1002AManager:
                               default_kwargs={'channel': 2})
         return function_map
 
-    def get_edux1002a(self) -> EDUX1002A:
+    def get_device(self) -> EDUX1002A:
         """
         Function to create an EDUX1002A device.
         Updates the state depending on the device creation.

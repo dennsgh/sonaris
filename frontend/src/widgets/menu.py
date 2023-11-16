@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import QMenuBar, QMenu, QWidget, QFileDialog, QMessageBox
 from PyQt6.QtGui import QIcon, QAction,QKeySequence
 from PyQt6.QtGui import QKeySequence
 
-from widgets.version import VersionWindow
+from widgets.windows import VersionWindow,DeviceWindow
 
 class MainMenuBar(QMenuBar):
     
@@ -14,6 +14,7 @@ class MainMenuBar(QMenuBar):
         # File Menu
         fileMenu = QMenu("&File", self)
         self.version_window = VersionWindow(self.parent())
+        self.device_window = DeviceWindow(self.parent())
         self.addMenu(fileMenu)
 
         # Save State Action
@@ -36,17 +37,6 @@ class MainMenuBar(QMenuBar):
         exitAct.setStatusTip("Exits the application")
         exitAct.triggered.connect(self.exit_app)  # Assuming exit_app method exists
         fileMenu.addAction(exitAct)
-
-        # Help Menu
-        helpMenu = QMenu("&Help", self)
-        self.addMenu(helpMenu)
-
-        # Version Action
-        versionAct = QAction("&Version", self)
-        versionAct.setStatusTip("Displays version window and developer notes")
-        versionAct.triggered.connect(self.show_version)  # Assuming show_version method exists
-        helpMenu.addAction(versionAct)
-
         # Device Menu
         deviceMenu = QMenu("&Device", self)
         self.addMenu(deviceMenu)
@@ -57,6 +47,16 @@ class MainMenuBar(QMenuBar):
         deviceAct.setStatusTip("Displays device window")
         deviceAct.triggered.connect(self.show_device_window)  # Assuming show_device_window method exists
         deviceMenu.addAction(deviceAct)
+
+        # Help Menu
+        helpMenu = QMenu("&Help", self)
+        self.addMenu(helpMenu)
+
+        # Version Action
+        versionAct = QAction("&Version", self)
+        versionAct.setStatusTip("Displays version window and developer notes")
+        versionAct.triggered.connect(self.show_version)  # Assuming show_version method exists
+        helpMenu.addAction(versionAct)
 
     def save_state(self):
         # Opens a dialog to save a file
@@ -92,4 +92,4 @@ class MainMenuBar(QMenuBar):
 
 
     def show_device_window(self):
-        pass
+        self.device_window.show()

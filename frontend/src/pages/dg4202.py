@@ -20,7 +20,7 @@ class DG4202Page(ModuleWidget):
 
     def check_connection(self) -> bool:
 
-        self.my_generator = self.dg4202_manager.get_dg4202()
+        self.my_generator = self.dg4202_manager.get_device()
         self.all_parameters = self.dg4202_manager.data_source.query_data()
         if self.my_generator is not None:
             is_alive = self.my_generator.is_connection_alive()
@@ -35,7 +35,7 @@ class DG4202Page(ModuleWidget):
         self.channel_count = 2
         self.link_channel = False
         self.dg4202_manager = dg4202_manager
-        self.my_generator = self.dg4202_manager.get_dg4202()
+        self.my_generator = self.dg4202_manager.get_device()
         self.all_parameters = self.dg4202_manager.data_source.query_data()
         # Init UI
         self.initUI()
