@@ -3,6 +3,7 @@ import requests
 import threading
 from device.dg4202 import DG4202, DG4202Mock
 from api.dg4202_api import DG4202APIServer
+import time
 
 endpoint = 'http://localhost:5000/api'
 
@@ -12,6 +13,7 @@ def api():
     dg4202 = DG4202Mock()
     api = DG4202APIServer(dg4202, 5000)
     threading.Thread(target=api.run).start()  # run Flask app in a separate thread
+    time.sleep(1)
     yield api
     api.shutdown()
 
