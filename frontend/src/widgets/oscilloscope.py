@@ -110,7 +110,7 @@ class OscilloscopeWidget(ModuleWidget):
         channel_layout.addLayout(axis_layout)
         channel_group.setLayout(channel_layout)
 
-        plot_widget.setFixedHeight(300)  # Fixed height, adjust as needed
+        plot_widget.setFixedHeight(200)  # Fixed height, adjust as needed
         plot_widget.setBackground('k')  # Black background
         plot_widget.showGrid(x=True, y=True, alpha=0.5)  # Grid with semi-transparency
 
