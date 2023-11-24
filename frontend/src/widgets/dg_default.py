@@ -16,7 +16,7 @@ TIMER_INTERVAL_S = TIMER_INTERVAL / 1000.  # in ms
 DEFAULT_TAB_STYLE = {'height': '30px', 'padding': '2px'}
 
 
-class DG4202DefaultWidget(ModuleWidget):
+class DG4202DefaultWidget(QWidget):
 
     def check_connection(self) -> bool:
 

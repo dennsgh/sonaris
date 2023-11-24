@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget
 from PyQt6.QtWidgets import QVBoxLayout, QListWidget, QListWidgetItem, QStackedWidget, QHBoxLayout
-from pages import general, factory, settings
+from pages import general, factory, settings, experiment
 import argparse
 from qt_material import apply_stylesheet
 from typing import Dict, Optional
@@ -50,9 +50,15 @@ class MainWindow(ModularMainWindow):
         # ---------------------------SIDEBAR SETUP------------------------------ #
         self.sidebar = Sidebar(self)
         self.sidebar_dict: Dict[str, QWidget] = {
-            "General": general.GeneralPage(factory.dg4202_manager, self, args_dict=args_dict),
-            "Experiment": settings.SettingsPage(self, args_dict),
-            "Settings": settings.SettingsPage(self, args_dict),
+            "General":
+                general.GeneralPage(factory.dg4202_manager,
+                                    factory.edux1002a_manager,
+                                    self,
+                                    args_dict=args_dict),
+            "Experiment":
+                experiment.ExperimentPage(factory.dg4202_manager, self, args_dict),
+            "Settings":
+                settings.SettingsPage(self, args_dict),
         }
         self.sidebar.addItems(self.sidebar_dict.keys())  # Add strings to sidebar items
         self.sidebar_content = QStackedWidget(self)
@@ -60,7 +66,6 @@ class MainWindow(ModularMainWindow):
                  self.sidebar_dict.values()))  # Adds all child widgets to content widgets
 
         # ---------------------------OSCILLOSCOPE------------------------------ #
-        self.oscilloscope = OscilloscopeWidget(factory.edux1002a_manager)
 
         # --------------------------------------------------------------------- #
         # ---------------------------LAYOUT SETUP------------------------------ #
@@ -68,7 +73,6 @@ class MainWindow(ModularMainWindow):
 
         self.add_widget_to_left(self.sidebar)
         self.add_widget_to_middle(self.sidebar_content)  # Use the method from ModularMainWindow
-        self.add_widget_to_top(self.oscilloscope)  # Use the method from ModularMainWindow
         # Connect the Sidebar's custom signal to the MainWindow's slot
         self.sidebar.pageSelected.connect(self.loadPage)
 

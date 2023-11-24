@@ -8,9 +8,10 @@ import pyqtgraph as pg
 from features.managers import DG4202Manager
 from widgets.dg_default import DG4202DefaultWidget
 from widgets.dg_experiment import DG4202ExperimentWidget
+from widgets.oscilloscope import OscilloscopeWidget
 
 
-class ExperimentPage(ModuleWidget):
+class ExperimentPage(QWidget):
 
     def check_connection(self) -> bool:
         self.my_generator = self.dg4202_manager.get_device()
