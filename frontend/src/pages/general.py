@@ -8,6 +8,7 @@ import pyqtgraph as pg
 from features.managers import DG4202Manager
 from widgets.dg_default import DG4202DefaultWidget
 from widgets.dg_experiment import DG4202ExperimentWidget
+
 NOT_FOUND_STRING = 'Device not found!'
 TIMER_INTERVAL = 1000.  # in ms
 TIMER_INTERVAL_S = TIMER_INTERVAL / 1000.  # in ms
@@ -15,7 +16,7 @@ TIMER_INTERVAL_S = TIMER_INTERVAL / 1000.  # in ms
 DEFAULT_TAB_STYLE = {'height': '30px', 'padding': '2px'}
 
 
-class DG4202Page(ModuleWidget):
+class GeneralPage(ModuleWidget):
 
     def check_connection(self) -> bool:
         self.my_generator = self.dg4202_manager.get_device()
@@ -36,7 +37,8 @@ class DG4202Page(ModuleWidget):
     def initUI(self):
         self.main_layout = QVBoxLayout()
         self.check_connection()
-        self.connection_status_label = QLabel(f"Connection Status: {self.all_parameters.get('connected', 'Not connected')}")
+        self.connection_status_label = QLabel(
+            f"Connection Status: {self.all_parameters.get('connected', 'Not connected')}")
         self.main_layout.addWidget(self.connection_status_label)
 
         self.status_label = QLabel("")
@@ -48,10 +50,6 @@ class DG4202Page(ModuleWidget):
         # Default Widget Tab
         self.default_widget = DG4202DefaultWidget(self.dg4202_manager, self, self.args_dict)
         self.tab_widget.addTab(self.default_widget, "Default Mode")
-
-        # Experiment Widget Tab
-        self.experiment_widget = DG4202ExperimentWidget(self.dg4202_manager, self, self.args_dict)
-        self.tab_widget.addTab(self.experiment_widget, "Experiment Mode")
 
         # Adding the tab widget to the main layout
         self.main_layout.addWidget(self.tab_widget)

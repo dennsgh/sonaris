@@ -11,13 +11,15 @@ import numpy as np
 import json
 from datetime import datetime
 
+
 class DG4202ExperimentWidget(QWidget):
+
     def __init__(self, dg4202_manager: DG4202Manager, parent=None, args_dict: dict = None):
         super().__init__(parent=parent)
         self.dg4202_manager = dg4202_manager
         self.my_generator = self.dg4202_manager.get_device()
         self.all_parameters = self.dg4202_manager.data_source.query_data()
-        self.channels_params ={}
+        self.channels_params = {}
         self.initUI()
 
     def initUI(self):
@@ -50,7 +52,7 @@ class DG4202ExperimentWidget(QWidget):
 
     def initialize_channel_controls(self, channel, start_row):
         # Set up controls for channel using values from self.all_parameters
-        mode = self.all_parameters[str(channel)]["mode"]
+        mode = self.all_parameters[str(channel)]["mode"]["current_mode"]
         frequency = str(self.all_parameters[str(channel)]["waveform"]["frequency"])
         amplitude = str(self.all_parameters[str(channel)]["waveform"]["amplitude"])
         offset = str(self.all_parameters[str(channel)]["waveform"]["offset"])
@@ -84,20 +86,28 @@ class DG4202ExperimentWidget(QWidget):
 
         # If Sweep mode, initialize sweep-specific controls
         if mode == "Sweep":
-            sweep_time_input = QLineEdit(str(self.all_parameters[str(channel)]["mode"]["parameters"]["sweep"]["TIME"]))
-            self.grid_layout.addWidget(QLabel(f"Channel {channel} Sweep Time (s)"), start_row + 4, 0)
+            sweep_time_input = QLineEdit(
+                str(self.all_parameters[str(channel)]["mode"]["parameters"]["sweep"]["TIME"]))
+            self.grid_layout.addWidget(QLabel(f"Channel {channel} Sweep Time (s)"), start_row + 4,
+                                       0)
             self.grid_layout.addWidget(sweep_time_input, start_row + 4, 1)
-            
-            return_time_input = QLineEdit(str(self.all_parameters[str(channel)]["mode"]["parameters"]["sweep"]["RTIME"]))
-            self.grid_layout.addWidget(QLabel(f"Channel {channel} Return Time (s)"), start_row + 5, 0)
+
+            return_time_input = QLineEdit(
+                str(self.all_parameters[str(channel)]["mode"]["parameters"]["sweep"]["RTIME"]))
+            self.grid_layout.addWidget(QLabel(f"Channel {channel} Return Time (s)"), start_row + 5,
+                                       0)
             self.grid_layout.addWidget(return_time_input, start_row + 5, 1)
 
-            start_freq_input = QLineEdit(str(self.all_parameters[str(channel)]["mode"]["parameters"]["sweep"]["FSTART"]))
-            self.grid_layout.addWidget(QLabel(f"Channel {channel} Start Frequency (Hz)"), start_row + 6, 0)
+            start_freq_input = QLineEdit(
+                str(self.all_parameters[str(channel)]["mode"]["parameters"]["sweep"]["FSTART"]))
+            self.grid_layout.addWidget(QLabel(f"Channel {channel} Start Frequency (Hz)"),
+                                       start_row + 6, 0)
             self.grid_layout.addWidget(start_freq_input, start_row + 6, 1)
 
-            stop_freq_input = QLineEdit(str(self.all_parameters[str(channel)]["mode"]["parameters"]["sweep"]["FSTOP"]))
-            self.grid_layout.addWidget(QLabel(f"Channel {channel} Stop Frequency (Hz)"), start_row + 7, 0)
+            stop_freq_input = QLineEdit(
+                str(self.all_parameters[str(channel)]["mode"]["parameters"]["sweep"]["FSTOP"]))
+            self.grid_layout.addWidget(QLabel(f"Channel {channel} Stop Frequency (Hz)"),
+                                       start_row + 7, 0)
             self.grid_layout.addWidget(stop_freq_input, start_row + 7, 1)
 
             # Add sweep-specific controls to channels_params
@@ -123,7 +133,8 @@ class DG4202ExperimentWidget(QWidget):
     def start_experiment(self):
         # Gather the parameters for both channels
         ch1_params = self.get_channel_parameters(1)
-        ch2_params = self.get_channel_parameters(2) if self.enable_channel_checkbox.isChecked() else None
+        ch2_params = self.get_channel_parameters(
+            2) if self.enable_channel_checkbox.isChecked() else None
 
         # Log experiment start
         self.log_experiment_details(ch1_params, ch2_params)

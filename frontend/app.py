@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget
 from PyQt6.QtWidgets import QVBoxLayout, QListWidget, QListWidgetItem, QStackedWidget, QHBoxLayout
-from pages import dg4202, factory, settings
+from pages import general, factory, settings
 import argparse
 from qt_material import apply_stylesheet
 from typing import Dict, Optional
@@ -14,6 +14,7 @@ from widgets.templates import *
 from widgets.menu import MainMenuBar
 from PyQt6.QtWidgets import QMenu
 from PyQt6.QtGui import QIcon, QAction
+
 OSCILLOSCOPE_BUFFER_SIZE = 512
 
 
@@ -49,7 +50,8 @@ class MainWindow(ModularMainWindow):
         # ---------------------------SIDEBAR SETUP------------------------------ #
         self.sidebar = Sidebar(self)
         self.sidebar_dict: Dict[str, QWidget] = {
-            "DG4202": dg4202.DG4202Page(factory.dg4202_manager, self, args_dict=args_dict),
+            "General": general.GeneralPage(factory.dg4202_manager, self, args_dict=args_dict),
+            "Experiment": settings.SettingsPage(self, args_dict),
             "Settings": settings.SettingsPage(self, args_dict),
         }
         self.sidebar.addItems(self.sidebar_dict.keys())  # Add strings to sidebar items
