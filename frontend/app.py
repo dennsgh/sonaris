@@ -49,6 +49,8 @@ class MainWindow(ModularMainWindow):
         # ---------------------------------------------------------------------- #
         # ---------------------------SIDEBAR SETUP------------------------------ #
         self.sidebar = Sidebar(self)
+
+        self.sidebar.sizePolicy()
         self.sidebar_dict: Dict[str, QWidget] = {
             "General":
                 general.GeneralPage(factory.dg4202_manager,
@@ -64,8 +66,6 @@ class MainWindow(ModularMainWindow):
         self.sidebar_content = QStackedWidget(self)
         list(map(self.sidebar_content.addWidget,
                  self.sidebar_dict.values()))  # Adds all child widgets to content widgets
-
-        # ---------------------------OSCILLOSCOPE------------------------------ #
 
         # --------------------------------------------------------------------- #
         # ---------------------------LAYOUT SETUP------------------------------ #
