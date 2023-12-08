@@ -55,7 +55,6 @@ class DG4202Manager:
         self.state_manager = state_manager
         self.args_dict = args_dict
         self._mock_device = DG4202Mock()
-        self.function_map = self._initialize_function_map()  # required for scheduler
         self.rm = resource_manager
         self.data_source = None
         self._initialize_device()
@@ -147,7 +146,6 @@ class EDUX1002AManager:
         self.buffers = {1: None, 2: None}
         self.buffer_size = buffer_size
         self._initialize_device()
-        self.function_map = self._initialize_function_map()  # required for scheduler
 
     def _initialize_device(self):
         detector = EDUX1002ADetector(resource_manager=self.rm)

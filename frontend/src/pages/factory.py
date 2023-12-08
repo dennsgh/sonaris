@@ -21,5 +21,5 @@ edux1002a_manager: EDUX1002AManager = None
 # ======================================================== #
 # ===================Worker Modules======================= #
 # ======================================================== #
-timekeepeer: Timekeeper = None
 worker: Worker = None
+timekeeper: Timekeeper = None
