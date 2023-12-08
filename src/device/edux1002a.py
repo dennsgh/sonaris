@@ -1,27 +1,25 @@
-import pyvisa
-from pyvisa.resources import Resource
 import re
 from typing import Optional
-from device.interface import Interface, USBInterface, EthernetInterface
-from collections import deque
+
 import numpy as np
+import pyvisa
 
 from device.data import DataSource
+from device.interface import EthernetInterface, Interface, USBInterface
 
 
 class EDUX1002ADetector:
-
     def __init__(self, resource_manager: pyvisa.ResourceManager):
         self.rm = resource_manager
 
-    def detect_device(self) -> Optional['EDUX1002A']:
+    def detect_device(self) -> Optional["EDUX1002A"]:
         """
         Method that attempts to detect a EDUX1002A device connected via TCP/IP or USB.
         Loops through all available resources, attempting to open each one and query its identity.
         If a EDUX1002A device is found, it creates and returns a DG4202 instance.
 
         Returns:
-            EDUX1002A: An instance of the EDUX1002A class connected to the detected device, 
+            EDUX1002A: An instance of the EDUX1002A class connected to the detected device,
                     or None if no such device is found.
         """
         resources = self.rm.list_resources()
@@ -122,7 +120,7 @@ class EDUX1002A:
     def digitize(self, channel=0):
         """Capture data using the :DIGitize command."""
         if channel == 0:
-            self.interface.write(f":DIGitize")
+            self.interface.write(":DIGitize")
         else:
             self.interface.write(f":DIGitize CHANnel{channel}")
 
@@ -139,7 +137,7 @@ class EDUX1002A:
     def set_acquisition_mode(self, mode="RTIMe"):
         """
         Set the acquisition mode of the oscilloscope.
-        
+
         Parameters:
         - mode (str): The acquisition mode to set. Options are "RTIMe" for real-time mode
                       and "SEGMented" for segmented mode. Default is "RTIMe".
@@ -156,16 +154,16 @@ class EDUX1002A:
 
     def setup_waveform_readout(self, channel: int = 1, mode="ASCII"):
         """Setup the oscilloscope for waveform readout."""
-        #self.interface.write(f"CHANNEL{channel}:DISPLAY ON")
-        #self.interface.write(f"DATA:SOURCE CHANNEL{channel}")
-        #self.set_waveform_format(mode)
+        # self.interface.write(f"CHANNEL{channel}:DISPLAY ON")
+        # self.interface.write(f"DATA:SOURCE CHANNEL{channel}")
+        # self.set_waveform_format(mode)
         self.set_waveform_source(channel)
 
     def get_waveform_preamble(self):
         """Retrieve the waveform preamble which provides data on the waveform format."""
         preamble_str = self.interface.read(":WAVeform:PREamble?")
-        preamble_values = preamble_str.split(',')
-        #print(preamble_str)
+        preamble_values = preamble_str.split(",")
+        # print(preamble_str)
         # Convert the values according to the documentation
         preamble = [
             int(preamble_values[0]),  # format
@@ -177,7 +175,7 @@ class EDUX1002A:
             int(preamble_values[6]),  # xreference
             float(preamble_values[7]),  # yincrement
             float(preamble_values[8]),  # yorigin
-            int(preamble_values[9])  # yreference
+            int(preamble_values[9]),  # yreference
         ]
 
         return preamble
@@ -187,8 +185,16 @@ class EDUX1002A:
 
         # Expected names and their explanations based on documentation
         names = [
-            "Format", "Type", "Points", "Count", "X Increment", "X Origin", "X Reference",
-            "Y Increment", "Y Origin", "Y Reference"
+            "Format",
+            "Type",
+            "Points",
+            "Count",
+            "X Increment",
+            "X Origin",
+            "X Reference",
+            "Y Increment",
+            "Y Origin",
+            "Y Reference",
         ]
 
         format_explanations = {0: "BYTE format", 1: "WORD format", 4: "ASCII format"}
@@ -202,7 +208,7 @@ class EDUX1002A:
         # Extracting the values
         details = [
             format_explanations.get(preamble[0], f"Unknown Value {preamble[0]}"),
-            type_explanations.get(preamble[1], f"Unknown Value {preamble[1]}")
+            type_explanations.get(preamble[1], f"Unknown Value {preamble[1]}"),
         ] + preamble[2:]
 
         # Displaying the details
@@ -219,21 +225,25 @@ class EDUX1002A:
         preamble = self.get_waveform_preamble()
 
         # Check for header
-        if waveform_data[0] == '#':
+        if waveform_data[0] == "#":
             num_digits = int(waveform_data[1])
-            num_data_points = int(waveform_data[2:2 + num_digits])
+            num_data_points = int(waveform_data[2 : 2 + num_digits])
 
             # Extract the actual data without the header
-            waveform_data = waveform_data[2 + num_digits:]
+            waveform_data = waveform_data[2 + num_digits :]
 
         format_type = preamble[0]
         print(self.display_preamble_details(preamble))
         if format_type == 4:  # ASCII
-            return preamble, np.array([float(val) for val in waveform_data.split(',')])
+            return preamble, np.array([float(val) for val in waveform_data.split(",")])
         elif format_type == 0:  # BYTE
-            return preamble, np.frombuffer(waveform_data.encode('latin-1'), dtype=np.int8)
+            return preamble, np.frombuffer(
+                waveform_data.encode("latin-1"), dtype=np.int8
+            )
         elif format_type == 1:  # WORD
-            return preamble, np.frombuffer(waveform_data.encode('latin-1'), dtype=np.int16)
+            return preamble, np.frombuffer(
+                waveform_data.encode("latin-1"), dtype=np.int16
+            )
         else:
             raise ValueError("Unknown waveform format.")
 
@@ -262,7 +272,7 @@ class EDUX1002A:
         Set the data acquisition type of the oscilloscope.
 
         Parameters:
-        - acq_type (str): The acquisition type to set. Options are "NORMal", "AVERage", 
+        - acq_type (str): The acquisition type to set. Options are "NORMal", "AVERage",
                           "HRESolution", and "PEAK". Default is "NORMal".
         """
         valid_types = ["NORMal", "AVERage", "HRESolution", "PEAK"]
@@ -276,7 +286,7 @@ class EDUX1002A:
         Set the data acquisition type of the oscilloscope.
 
         Parameters:
-        - ret_type (str): The acquisition type to set. Options are "NORMal", "AVERage", 
+        - ret_type (str): The acquisition type to set. Options are "NORMal", "AVERage",
                           "HRESolution", and "PEAK". Default is "NORMal".
         """
         valid_types = ["NORMal", "PEAK", "AVERage", "HREsolution"]
@@ -288,7 +298,7 @@ class EDUX1002A:
     def get_acquisition_type(self):
         """
         Query the oscilloscope for the current acquisition type.
-        
+
         Returns:
         - str: The current acquisition type. One of "NORM", "AVER", "HRES", or "PEAK".
         """
@@ -302,13 +312,14 @@ class EDUX1002A:
         - count (int): The number of averages. An integer from 1 to 65536.
         """
         if not 1 <= count <= 65536:
-            raise ValueError("Acquisition count should be an integer between 1 and 65536.")
+            raise ValueError(
+                "Acquisition count should be an integer between 1 and 65536."
+            )
 
         self.interface.write(f":ACQuire:COUNt {count}")
 
 
 class EDUX1002ADataSource(DataSource):
-
     def __init__(self, device: EDUX1002A, channel: int = 1):
         super().__init__(device)
         self.channel = channel

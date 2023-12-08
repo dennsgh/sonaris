@@ -1,53 +1,16 @@
 import json
 from datetime import datetime
 
-from features.managers import DG4202Manager
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import (
-    QCheckBox,
-    QComboBox,
-    QGridLayout,
-    QLabel,
-    QLineEdit,
-    QPushButton,
-    QVBoxLayout,
-    QWidget,
-)
+from PyQt6.QtWidgets import QComboBox, QLabel, QLineEdit, QWidget
 
 
-class DG4202ExperimentWidget(QWidget):
-    def __init__(
-        self, dg4202_manager: DG4202Manager, parent=None, args_dict: dict = None
-    ):
+class SchedulerWidget(QWidget):
+    def __init__(self, parent=None, args_dict: dict = None):
         super().__init__(parent=parent)
-        self.dg4202_manager = dg4202_manager
-        self.my_generator = self.dg4202_manager.get_device()
-        self.all_parameters = self.dg4202_manager.data_source.query_data()
         self.initUI()
 
     def initUI(self):
-        self.layout = QVBoxLayout()
-
-        # Checkbox to enable Channel 2
-        self.enable_channel_checkbox = QCheckBox("Enable Channel 2")
-        self.enable_channel_checkbox.stateChanged.connect(self.toggle_channel_2)
-        self.layout.addWidget(self.enable_channel_checkbox)
-
-        # Create input fields for both channels using a grid layout
-        self.grid_layout = QGridLayout()
-
-        # Initialize input fields for both channels
-        for channel in range(1, 3):
-            row = (channel - 1) * 8  # Start new channel setup at a new row
-            self.initialize_channel_controls(channel, row)
-
-        # Start button
-        self.start_button = QPushButton("Start Experiment")
-        self.start_button.clicked.connect(self.start_experiment)
-
-        # Add layouts to main layout
-        self.layout.addLayout(self.grid_layout)
-        self.layout.addWidget(self.start_button)
         self.setLayout(self.layout)
 
         # Initially, Channel 2 controls will be disabled

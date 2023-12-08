@@ -1,25 +1,33 @@
-from PyQt6.QtWidgets import *
-from PyQt6.QtCore import *
-from widgets.templates import ModuleWidget
-from device.dg4202 import DG4202
-from pages import plotter
-from datetime import datetime, timedelta
-from PyQt6.QtCharts import QChart, QChartView, QLineSeries
+from datetime import datetime
+
 import pyqtgraph as pg
 from features.managers import DG4202Manager
-import numpy as np
+from pages import plotter
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
+    QComboBox,
+    QDialog,
+    QFormLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
-NOT_FOUND_STRING = 'Device not found!'
-TIMER_INTERVAL = 1000.  # in ms
-TIMER_INTERVAL_S = TIMER_INTERVAL / 1000.  # in ms
+from device.dg4202 import DG4202
 
-DEFAULT_TAB_STYLE = {'height': '30px', 'padding': '2px'}
+NOT_FOUND_STRING = "Device not found!"
+TIMER_INTERVAL = 1000.0  # in ms
+TIMER_INTERVAL_S = TIMER_INTERVAL / 1000.0  # in ms
+
+DEFAULT_TAB_STYLE = {"height": "30px", "padding": "2px"}
 
 
 class DG4202DefaultWidget(QWidget):
-
     def check_connection(self) -> bool:
-
         self.my_generator = self.dg4202_manager.get_device()
         self.all_parameters = self.dg4202_manager.data_source.query_data()
         if self.my_generator is not None:
@@ -29,7 +37,9 @@ class DG4202DefaultWidget(QWidget):
             return is_alive
         return False
 
-    def __init__(self, dg4202_manager: DG4202Manager, parent=None, args_dict: dict = None):
+    def __init__(
+        self, dg4202_manager: DG4202Manager, parent=None, args_dict: dict = None
+    ):
         super().__init__(parent=parent)
         self.args_dict = args_dict
         self.channel_count = 2
@@ -56,7 +66,7 @@ class DG4202DefaultWidget(QWidget):
             self.controls[channel] = {
                 "main_controls": main_controls_widget,
                 "waveform_control": waveform_control,
-                "sweep_control": sweep_control
+                "sweep_control": sweep_control,
             }
 
     def initUI(self):
@@ -69,7 +79,7 @@ class DG4202DefaultWidget(QWidget):
         self.main_layout.addWidget(self.connection_status_label)
         self.status_label = QLabel("")
         self.main_layout.addWidget(self.status_label)
-        for channel, widgets in self.controls.items():
+        for _, widgets in self.controls.items():
             # Add main controls for the channel
 
             tab_widget = QTabWidget()
@@ -94,7 +104,7 @@ class DG4202DefaultWidget(QWidget):
         duration_layout.addWidget(duration_input)
 
         timer_units = QComboBox()
-        timer_units.addItems(['ms', 's', 'm', 'h'])
+        timer_units.addItems(["ms", "s", "m", "h"])
         duration_layout.addWidget(timer_units)
         timer_layout.addLayout(duration_layout)
 
@@ -172,8 +182,15 @@ class DG4202DefaultWidget(QWidget):
         # Set parameters button
         set_parameters_button = QPushButton(f"Set Parameters CH{channel}", self)
         set_parameters_button.clicked.connect(
-            lambda: self.update_sweep(channel, sweep_input.text(), rtime_input.text(),
-                                      fstart_input.text(), fstop_input.text(), plot_data))
+            lambda: self.update_sweep(
+                channel,
+                sweep_input.text(),
+                rtime_input.text(),
+                fstart_input.text(),
+                fstop_input.text(),
+                plot_data,
+            )
+        )
         left_column_layout.addWidget(set_parameters_button)
 
         left_widget = QWidget()
@@ -182,10 +199,12 @@ class DG4202DefaultWidget(QWidget):
         # ---- RIGHT COLUMN (Sweep Plot) ---- #
         right_column_layout = QVBoxLayout()
         plot_widget = pg.PlotWidget()
-        plot_widget.setLabel('left', 'Amplitude', units='V')
-        plot_widget.setLabel('bottom', 'Time', units='s')
+        plot_widget.setLabel("left", "Amplitude", units="V")
+        plot_widget.setLabel("bottom", "Time", units="s")
         plot_data = plot_widget.plot([], pen="y")
-        right_column_layout.addWidget(plot_widget, alignment=Qt.AlignmentFlag.AlignCenter)
+        right_column_layout.addWidget(
+            plot_widget, alignment=Qt.AlignmentFlag.AlignCenter
+        )
 
         right_widget = QWidget()
         right_widget.setLayout(right_column_layout)
@@ -223,22 +242,35 @@ class DG4202DefaultWidget(QWidget):
         left_column_layout.addRow(f"Waveform Type CH{channel}", waveform_type)
 
         # Frequency input
-        freq_input = QLineEdit(str(self.all_parameters[f"{channel}"]["waveform"]["frequency"]))
+        freq_input = QLineEdit(
+            str(self.all_parameters[f"{channel}"]["waveform"]["frequency"])
+        )
         left_column_layout.addRow("Frequency (Hz)", freq_input)
 
         # Amplitude input
-        amp_input = QLineEdit(str(self.all_parameters[f"{channel}"]["waveform"]["amplitude"]))
+        amp_input = QLineEdit(
+            str(self.all_parameters[f"{channel}"]["waveform"]["amplitude"])
+        )
         left_column_layout.addRow("Amplitude (V)", amp_input)
 
         # Offset input
-        offset_input = QLineEdit(str(self.all_parameters[f"{channel}"]["waveform"]["offset"]))
+        offset_input = QLineEdit(
+            str(self.all_parameters[f"{channel}"]["waveform"]["offset"])
+        )
         left_column_layout.addRow("Offset (V)", offset_input)
 
         # Set waveform button
         set_waveform_button = QPushButton(f"Set Waveform CH{channel}")
-        set_waveform_button.clicked.connect(lambda: self.on_update_waveform(
-            channel, waveform_type.currentText(), float(freq_input.text()), float(amp_input.text()),
-            float(offset_input.text()), plot_data))
+        set_waveform_button.clicked.connect(
+            lambda: self.on_update_waveform(
+                channel,
+                waveform_type.currentText(),
+                float(freq_input.text()),
+                float(amp_input.text()),
+                float(offset_input.text()),
+                plot_data,
+            )
+        )
         left_column_layout.addRow(set_waveform_button)
 
         # Add to main layout
@@ -249,10 +281,12 @@ class DG4202DefaultWidget(QWidget):
         # ---- RIGHT COLUMN (Waveform Plot) ---- #
         right_column_layout = QVBoxLayout()
         plot_widget = pg.PlotWidget()
-        plot_widget.setLabel('left', 'Amplitude', units='V')
-        plot_widget.setLabel('bottom', 'Time', units='s')
+        plot_widget.setLabel("left", "Amplitude", units="V")
+        plot_widget.setLabel("bottom", "Time", units="s")
         plot_data = plot_widget.plot([], pen="y")
-        right_column_layout.addWidget(plot_widget, alignment=Qt.AlignmentFlag.AlignCenter)
+        right_column_layout.addWidget(
+            plot_widget, alignment=Qt.AlignmentFlag.AlignCenter
+        )
 
         # Add to main layout
         right_widget = QWidget()
@@ -264,17 +298,52 @@ class DG4202DefaultWidget(QWidget):
         self.update_waveform(channel, plot_data)
         return channel_widget
 
-    def update_sweep(self, channel: int, sweep: float, rtime: float, fstart: float, fstop: float,
-                     plot_data):
+    def update_sweep(
+        self,
+        channel: int,
+        sweep: float,
+        rtime: float,
+        fstart: float,
+        fstop: float,
+        plot_data,
+    ):
         if self.check_connection():
-            sweep = float(sweep) if sweep else float(
-                self.all_parameters[f"{channel}"]["mode"]["parameters"]["sweep"]["TIME"])
-            rtime = float(rtime) if rtime else float(
-                self.all_parameters[f"{channel}"]["mode"]["parameters"]["sweep"]["RTIME"])
-            fstart = float(fstart) if fstart else float(
-                self.all_parameters[f"{channel}"]["mode"]["parameters"]["sweep"]["FSTART"])
-            fstop = float(fstop) if fstop else float(
-                self.all_parameters[f"{channel}"]["mode"]["parameters"]["sweep"]["FSTART"])
+            sweep = (
+                float(sweep)
+                if sweep
+                else float(
+                    self.all_parameters[f"{channel}"]["mode"]["parameters"]["sweep"][
+                        "TIME"
+                    ]
+                )
+            )
+            rtime = (
+                float(rtime)
+                if rtime
+                else float(
+                    self.all_parameters[f"{channel}"]["mode"]["parameters"]["sweep"][
+                        "RTIME"
+                    ]
+                )
+            )
+            fstart = (
+                float(fstart)
+                if fstart
+                else float(
+                    self.all_parameters[f"{channel}"]["mode"]["parameters"]["sweep"][
+                        "FSTART"
+                    ]
+                )
+            )
+            fstop = (
+                float(fstop)
+                if fstop
+                else float(
+                    self.all_parameters[f"{channel}"]["mode"]["parameters"]["sweep"][
+                        "FSTART"
+                    ]
+                )
+            )
             params = {"TIME": sweep, "RTIME": rtime, "FSTART": fstart, "FSTOP": fstop}
             self.my_generator.set_sweep_parameters(channel, params)
 
@@ -287,8 +356,14 @@ class DG4202DefaultWidget(QWidget):
         """
         print(channel)
         if self.check_connection():
-            set_to = False if self.all_parameters[f"{channel}"]["output_status"] == 'ON' else True
-            print(f'{channel} is {self.all_parameters[f"{channel}"]["output_status"]} -> {set_to}')
+            set_to = (
+                False
+                if self.all_parameters[f"{channel}"]["output_status"] == "ON"
+                else True
+            )
+            print(
+                f'{channel} is {self.all_parameters[f"{channel}"]["output_status"]} -> {set_to}'
+            )
             self.my_generator.output_on_off(channel, set_to)
             self.check_connection()  # updates dictionary
             # Update the button state after toggling the output
@@ -297,14 +372,14 @@ class DG4202DefaultWidget(QWidget):
 
     def update_button_state(self, output_btn, channel: int):
         """
-            Update the button's appearance and text based on the output status.
+        Update the button's appearance and text based on the output status.
 
-            Parameters:
-                output_btn (QPushButton): The output button to be updated.
-                channel (int): The channel number.
-            """
+        Parameters:
+            output_btn (QPushButton): The output button to be updated.
+            channel (int): The channel number.
+        """
         status = self.all_parameters[f"{channel}"]["output_status"]
-        if status == 'ON':
+        if status == "ON":
             output_btn.setStyleSheet("background-color: green; color: white;")
             output_btn.setText(f"Output CH{channel} ON")
         else:
@@ -323,8 +398,15 @@ class DG4202DefaultWidget(QWidget):
 
         # Connect the signal
 
-    def on_update_waveform(self, channel: int, waveform_type: str, frequency: float,
-                           amplitude: float, offset: float, plot_data):
+    def on_update_waveform(
+        self,
+        channel: int,
+        waveform_type: str,
+        frequency: float,
+        amplitude: float,
+        offset: float,
+        plot_data,
+    ):
         """
         Update the waveform parameters and plot.
 
@@ -338,19 +420,32 @@ class DG4202DefaultWidget(QWidget):
         """
         if self.check_connection():
             frequency = frequency or float(
-                self.all_parameters[f"{channel}"]["waveform"]["frequency"])
+                self.all_parameters[f"{channel}"]["waveform"]["frequency"]
+            )
             amplitude = amplitude or float(
-                self.all_parameters[f"{channel}"]["waveform"]["amplitude"])
-            offset = offset or float(self.all_parameters[f"{channel}"]["waveform"]["offset"])
-            waveform_type = waveform_type or self.all_parameters[f"{channel}"]["waveform"][
-                "waveform_type"]
+                self.all_parameters[f"{channel}"]["waveform"]["amplitude"]
+            )
+            offset = offset or float(
+                self.all_parameters[f"{channel}"]["waveform"]["offset"]
+            )
+            waveform_type = (
+                waveform_type
+                or self.all_parameters[f"{channel}"]["waveform"]["waveform_type"]
+            )
 
             # If a parameter is not set, pass the current value
-            self.my_generator.set_waveform(channel, waveform_type, frequency, amplitude, offset)
+            self.my_generator.set_waveform(
+                channel, waveform_type, frequency, amplitude, offset
+            )
 
             if self.link_channel:
-                self.my_generator.set_waveform(2 if channel == 1 else 1, waveform_type, frequency,
-                                               amplitude, offset)
+                self.my_generator.set_waveform(
+                    2 if channel == 1 else 1,
+                    waveform_type,
+                    frequency,
+                    amplitude,
+                    offset,
+                )
 
             # Update some status label or log if you have one
             status_string = f"[{datetime.now().isoformat()}] Waveform updated."
@@ -363,15 +458,22 @@ class DG4202DefaultWidget(QWidget):
 
     def update_waveform(self, channel, plot_data):
         self.check_connection()
-        x_data, y_data = plotter.plot_waveform(params=self.all_parameters[f"{channel}"]["waveform"])
+        x_data, y_data = plotter.plot_waveform(
+            params=self.all_parameters[f"{channel}"]["waveform"]
+        )
         plot_data.setData(x_data, y_data)
 
     def update_waveform_sweep(self, channel, plot_data):
         self.check_connection()
         x_data, y_data = plotter.plot_sweep(
-            start_frequency=self.all_parameters[f"{channel}"]["mode"]["parameters"]["sweep"]
-            ["FSTART"],
-            stop_frequency=self.all_parameters[f"{channel}"]["mode"]["parameters"]["sweep"]
-            ["FSTOP"],
-            sweep=self.all_parameters[f"{channel}"]["mode"]["parameters"]["sweep"]["TIME"])
+            start_frequency=self.all_parameters[f"{channel}"]["mode"]["parameters"][
+                "sweep"
+            ]["FSTART"],
+            stop_frequency=self.all_parameters[f"{channel}"]["mode"]["parameters"][
+                "sweep"
+            ]["FSTOP"],
+            sweep=self.all_parameters[f"{channel}"]["mode"]["parameters"]["sweep"][
+                "TIME"
+            ],
+        )
         plot_data.setData(x_data, y_data)

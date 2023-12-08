@@ -1,27 +1,24 @@
-from flask import Flask, request, jsonify
-import pyvisa
-import abc
 import re
-from typing import Optional, Union, List, Tuple
-from werkzeug.serving import make_server
-from device.interface import Interface, USBInterface, EthernetInterface
-from pyvisa.resources import Resource
+from typing import List, Optional
+
+import pyvisa
+
 from device.data import DataSource
+from device.interface import EthernetInterface, Interface, USBInterface
 
 
 class DG4202Detector:
-
     def __init__(self, resource_manager: pyvisa.ResourceManager):
         self.rm = resource_manager
 
-    def detect_device(self) -> Optional['DG4202']:
+    def detect_device(self) -> Optional["DG4202"]:
         """
         Method that attempts to detect a DG4202 device connected via TCP/IP or USB.
         Loops through all available resources, attempting to open each one and query its identity.
         If a DG4202 device is found, it creates and returns a DG4202 instance.
 
         Returns:
-            DG4202: An instance of the DG4202 class connected to the detected device, 
+            DG4202: An instance of the DG4202 class connected to the detected device,
                     or None if no such device is found.
         """
         resources = self.rm.list_resources()
@@ -48,7 +45,6 @@ class DG4202Detector:
 
 
 class DG4202:
-
     @staticmethod
     def available_waveforms() -> List[str]:
         """
@@ -57,7 +53,7 @@ class DG4202:
         Returns:
             List[str]: List of available waveform types.
         """
-        return ['SIN', 'SQUARE', 'RAMP', 'PULSE', 'NOISE', 'ARB', 'DC']
+        return ["SIN", "SQUARE", "RAMP", "PULSE", "NOISE", "ARB", "DC"]
 
     @staticmethod
     def available_modes() -> List[str]:
@@ -67,34 +63,51 @@ class DG4202:
         Returns:
             List[str]: List of available modes.
         """
-        return ['off', 'sweep', 'burst', 'mod']
+        return ["off", "sweep", "burst", "mod"]
 
     def __init__(self, interface: Interface):
         self.interface = interface
 
-    def set_waveform(self,
-                     channel: int,
-                     waveform_type: str = None,
-                     frequency: float = None,
-                     amplitude: float = None,
-                     offset: float = None) -> None:
+    def set_waveform(
+        self,
+        channel: int,
+        waveform_type: str = None,
+        frequency: float = None,
+        amplitude: float = None,
+        offset: float = None,
+        params: dict = None,
+    ) -> None:
         """
         Generates a waveform with the specified parameters. If a parameter is None, its current value is left unchanged.
 
         Args:
+            channel (int): The channel to apply it to
             waveform_type (str, optional): The type of waveform to generate. Defaults to None.
             frequency (float, optional): The frequency of the waveform in Hz. Defaults to None.
             amplitude (float, optional): The amplitude of the waveform. Defaults to None.
             offset (float, optional): The offset of the waveform. Defaults to None.
+            params (float, optional): parameter dictionary.
         """
+        if params is None:
+            params = {}  # Create an empty dictionary if params is None
+
+        waveform_type = waveform_type or params.get("waveform_type")
+        frequency = frequency or params.get("frequency")
+        amplitude = amplitude or params.get("amplitude")
+        offset = offset or params.get("offset")
+
         if waveform_type is not None:
             self.interface.write(f"SOURce{channel}:FUNCtion {waveform_type}")
         if frequency is not None:
             self.interface.write(f"SOURce{channel}:FREQuency:FIXed {frequency}")
         if amplitude is not None:
-            self.interface.write(f"SOURce{channel}:VOLTage:LEVel:IMMediate:AMPLitude {amplitude}")
+            self.interface.write(
+                f"SOURce{channel}:VOLTage:LEVel:IMMediate:AMPLitude {amplitude}"
+            )
         if offset is not None:
-            self.interface.write(f"SOURce{channel}:VOLTage:LEVel:IMMediate:OFFSet {offset}")
+            self.interface.write(
+                f"SOURce{channel}:VOLTage:LEVel:IMMediate:OFFSet {offset}"
+            )
 
     def turn_off_modes(self, channel: int) -> None:
         """
@@ -113,7 +126,7 @@ class DG4202:
         """
         return self.interface.read("*STB?")
 
-    def output_on_off(self, channel: int, status: bool) -> None:
+    def output_on_off(self, channel: int, status: bool) -> bool:
         """
         Turns the output of the device on or off.
 
@@ -161,10 +174,14 @@ class DG4202:
         """
         self.interface.write(f"SOURce{channel}:MOD:STATe ON")
         self.interface.write(f"SOURce{channel}:MOD:TYPE {mod_type}")
-        for param in ['SOUR', 'DEPT', 'DEV', 'RATE']:  # Add more parameters as needed
+        for param in ["SOUR", "DEPT", "DEV", "RATE"]:  # Add more parameters as needed
             if param not in mod_params:
-                mod_params[param] = self.interface.read(f"SOURce{channel}:MOD:{mod_type}:{param}?")
-            self.interface.write(f"SOURce{channel}:MOD:{mod_type}:{param} {mod_params[param]}")
+                mod_params[param] = self.interface.read(
+                    f"SOURce{channel}:MOD:{mod_type}:{param}?"
+                )
+            self.interface.write(
+                f"SOURce{channel}:MOD:{mod_type}:{param} {mod_params[param]}"
+            )
 
     def set_burst_mode(self, channel: int, burst_params: dict):
         """
@@ -176,9 +193,11 @@ class DG4202:
                 Expected keys are 'NCYC', 'MODE', 'TRIG', 'PHAS' etc.
         """
         self.interface.write(f"SOURce{channel}:BURSt:STATe ON")
-        for param in ['NCYC', 'MODE', 'TRIG', 'PHAS']:  # Add more parameters as needed
+        for param in ["NCYC", "MODE", "TRIG", "PHAS"]:  # Add more parameters as needed
             if param not in burst_params:
-                burst_params[param] = self.interface.read(f"SOURce{channel}:BURSt:{param}?")
+                burst_params[param] = self.interface.read(
+                    f"SOURce{channel}:BURSt:{param}?"
+                )
             self.interface.write(f"SOURce{channel}:BURSt:{param} {burst_params[param]}")
 
     def set_sweep_mode(self, channel: int, sweep_params: dict):
@@ -191,9 +210,15 @@ class DG4202:
                 Expected keys are 'START', 'STOP', 'SWEEP'.
         """
         self.interface.write(f"SOURce{channel}:SWEEp:STATe ON")
-        for param in ['START', 'STOP', 'SWEEP']:  # Add 'RETURN' if there's a corresponding command
+        for param in [
+            "START",
+            "STOP",
+            "SWEEP",
+        ]:  # Add 'RETURN' if there's a corresponding command
             if param not in sweep_params:
-                sweep_params[param] = self.interface.read(f"SOURce{channel}:SWEEp:{param}?")
+                sweep_params[param] = self.interface.read(
+                    f"SOURce{channel}:SWEEp:{param}?"
+                )
             self.interface.write(f"SOURce{channel}:SWEEp:{param} {sweep_params[param]}")
 
     def get_mode(self, channel: int):
@@ -209,20 +234,24 @@ class DG4202:
         sweep_state = self.interface.read(f"SOURce{channel}:SWEEp:STATe?")
         burst_state = self.interface.read(f"SOURce{channel}:BURSt:STATe?")
         mod_state = self.interface.read(f"SOURce{channel}:MOD:STATe?")
-        mod_type = self.interface.read(f"SOURce{channel}:MOD:TYPE?") if mod_state == '1' else None
+        mod_type = (
+            self.interface.read(f"SOURce{channel}:MOD:TYPE?")
+            if mod_state == "1"
+            else None
+        )
 
         mode_params = {}
         mode_params["sweep"] = self.get_sweep_parameters(channel)
         mode_params["burst"] = {}
         mode_params[f"mod ({mod_type})"] = {}
-        if sweep_state == '1':
-            mode = 'sweep'
-        elif burst_state == '1':
-            mode = 'burst'
-        elif mod_state == '1':
-            mode = f'mod ({mod_type})'
+        if sweep_state == "1":
+            mode = "sweep"
+        elif burst_state == "1":
+            mode = "burst"
+        elif mod_state == "1":
+            mode = f"mod ({mod_type})"
         else:
-            mode = 'off'
+            mode = "off"
 
         return {"current_mode": mode, "parameters": mode_params}
 
@@ -237,14 +266,24 @@ class DG4202:
             dict: A dictionary containing the sweep parameters.
         """
         sweep_params = {}
-        sweep_params['FSTART'] = float(self.interface.read(f"SOURce{channel}:FREQuency:STaRt?"))
-        sweep_params['FSTOP'] = float(self.interface.read(f"SOURce{channel}:FREQuency:STOP?"))
-        sweep_params['TIME'] = float(self.interface.read(f"SOURce{channel}:SWEEp:TIME?"))
-        sweep_params['RTIME'] = float(self.interface.read(f"SOURce{channel}:SWEEp:RTIMe?"))
-        sweep_params['HTIME_START'] = float(
-            self.interface.read(f"SOURce{channel}:SWEEp:HTIMe:STaRt?"))
-        sweep_params['HTIME_STOP'] = float(
-            self.interface.read(f"SOURce{channel}:SWEEp:HTIMe:STOP?"))
+        sweep_params["FSTART"] = float(
+            self.interface.read(f"SOURce{channel}:FREQuency:STaRt?")
+        )
+        sweep_params["FSTOP"] = float(
+            self.interface.read(f"SOURce{channel}:FREQuency:STOP?")
+        )
+        sweep_params["TIME"] = float(
+            self.interface.read(f"SOURce{channel}:SWEEp:TIME?")
+        )
+        sweep_params["RTIME"] = float(
+            self.interface.read(f"SOURce{channel}:SWEEp:RTIMe?")
+        )
+        sweep_params["HTIME_START"] = float(
+            self.interface.read(f"SOURce{channel}:SWEEp:HTIMe:STaRt?")
+        )
+        sweep_params["HTIME_STOP"] = float(
+            self.interface.read(f"SOURce{channel}:SWEEp:HTIMe:STOP?")
+        )
         # Add here the command for 'RETURN' when it is known
         # sweep_params['RETURN'] = self.interface.read(f"SOURce{channel}:???")
 
@@ -258,30 +297,44 @@ class DG4202:
             channel (int): The output channel to set.
             sweep_params (dict): Dictionary of parameters for sweep mode.
         """
-        if sweep_params.get('FSTART') is not None:
-            self.interface.write(f"SOURce{channel}:FREQuency:STaRt {sweep_params['FSTART']}")
-        if sweep_params.get('FSTOP') is not None:
-            self.interface.write(f"SOURce{channel}:FREQuency:STOP {sweep_params['FSTOP']}")
-        if sweep_params.get('TIME') is not None:
+        if sweep_params.get("FSTART") is not None:
+            self.interface.write(
+                f"SOURce{channel}:FREQuency:STaRt {sweep_params['FSTART']}"
+            )
+        if sweep_params.get("FSTOP") is not None:
+            self.interface.write(
+                f"SOURce{channel}:FREQuency:STOP {sweep_params['FSTOP']}"
+            )
+        if sweep_params.get("TIME") is not None:
             self.interface.write(f"SOURce{channel}:SWEEp:TIME {sweep_params['TIME']}")
-        if sweep_params.get('RTIME') is not None:
+        if sweep_params.get("RTIME") is not None:
             self.interface.write(f"SOURce{channel}:SWEEp:RTIMe {sweep_params['RTIME']}")
-        if sweep_params.get('HTIME_START') is not None:
-            self.interface.write(f"SOURce{channel}:SWEEp:HTIMe:STaRt {sweep_params['HTIME_START']}")
-        if sweep_params.get('HTIME_STOP') is not None:
-            self.interface.write(f"SOURce{channel}:SWEEp:HTIMe:STOP {sweep_params['HTIME_STOP']}")
+        if sweep_params.get("HTIME_START") is not None:
+            self.interface.write(
+                f"SOURce{channel}:SWEEp:HTIMe:STaRt {sweep_params['HTIME_START']}"
+            )
+        if sweep_params.get("HTIME_STOP") is not None:
+            self.interface.write(
+                f"SOURce{channel}:SWEEp:HTIMe:STOP {sweep_params['HTIME_STOP']}"
+            )
 
     def get_status(self, channel: int) -> str:
         status = []
 
-        status.append(f'Output: {self.get_output_status(channel)}')
-        status.append(f'Current mode: {self.get_mode(channel)}')
-        status.append(f'Current waveform parameters: {self.get_waveform_parameters(channel)}')
+        status.append(f"Output: {self.get_output_status(channel)}")
+        status.append(f"Current mode: {self.get_mode(channel)}")
+        status.append(
+            f"Current waveform parameters: {self.get_waveform_parameters(channel)}"
+        )
 
-        return ', '.join(status)
+        return ", ".join(status)
 
     def get_output_status(self, channel: int) -> str:
-        return 'ON' if self.interface.read(f"OUTPut{channel}?").strip() in ['1', 'ON'] else 'OFF'
+        return (
+            "ON"
+            if self.interface.read(f"OUTPut{channel}?").strip() in ["1", "ON"]
+            else "OFF"
+        )
 
     def get_waveform_parameters(self, channel: int) -> dict:
         """_summary_
@@ -290,7 +343,7 @@ class DG4202:
             channel (int): _description_
 
         Returns:
-            dict: 
+            dict:
             'waveform_type': waveform_type,
             'frequency': frequency,
             'amplitude': amplitude,
@@ -298,19 +351,21 @@ class DG4202:
         """
         waveform_type = self.interface.read(f"SOURce{channel}:FUNCtion?")
         frequency = self.interface.read(f"SOURce{channel}:FREQuency:FIXed?")
-        amplitude = self.interface.read(f"SOURce{channel}:VOLTage:LEVel:IMMediate:AMPLitude?")
+        amplitude = self.interface.read(
+            f"SOURce{channel}:VOLTage:LEVel:IMMediate:AMPLitude?"
+        )
         offset = self.interface.read(f"SOURce{channel}:VOLTage:LEVel:IMMediate:OFFSet?")
 
         return {
-            'waveform_type': str(waveform_type),
-            'frequency': float(frequency),
-            'amplitude': float(amplitude),
-            'offset': float(offset),
+            "waveform_type": str(waveform_type),
+            "frequency": float(frequency),
+            "amplitude": float(amplitude),
+            "offset": float(offset),
         }
 
     def is_connection_alive(self) -> bool:
         try:
-            _ = self.interface.read(f"SOURce1:FUNCtion?")
+            _ = self.interface.read("SOURce1:FUNCtion?")
             if _ is None:
                 # this is purely to simulate when in hardware mock to disconnect the device (i.e. when sending via the API flask server simulate_kill 'kill' : 'true' (look at notebooks))
                 return False
@@ -320,7 +375,6 @@ class DG4202:
 
 
 class DG4202Mock(DG4202):
-
     def __init__(self):
         # pass simulated interface
         self.killed = False
@@ -352,7 +406,7 @@ class DG4202Mock(DG4202):
             "get_status",
             "get_output_status",
             "get_waveform_parameters",
-            #"is_connection_alive"
+            # "is_connection_alive"
         }
 
         if object.__getattribute__(self, "killed") and name in blocked_methods:
@@ -362,7 +416,6 @@ class DG4202Mock(DG4202):
 
 
 class DG4202MockInterface(Interface):
-
     def __init__(self):
         self.state = {
             "*STB?": "0",
@@ -422,19 +475,29 @@ class DG4202MockInterface(Interface):
 
     def write(self, command: str) -> None:
         if command in [
-                "OUTPut1 ON", "SOURce1:SWEEp:STATe ON", "SOURce1:BURSt:STATe ON",
-                "SOURce1:MOD:STATe ON", "OUTPut2 ON", "SOURce2:SWEEp:STATe ON",
-                "SOURce2:BURSt:STATe ON", "SOURce2:MOD:STATe ON"
+            "OUTPut1 ON",
+            "SOURce1:SWEEp:STATe ON",
+            "SOURce1:BURSt:STATe ON",
+            "SOURce1:MOD:STATe ON",
+            "OUTPut2 ON",
+            "SOURce2:SWEEp:STATe ON",
+            "SOURce2:BURSt:STATe ON",
+            "SOURce2:MOD:STATe ON",
         ]:
             command, value = command.split()
-            self.state[command] = '1'
+            self.state[command] = "1"
         elif command in [
-                "OUTPut1 OFF", "SOURce1:SWEEp:STATe OFF", "SOURce1:BURSt:STATe OFF",
-                "SOURce1:MOD:STATe OFF", "OUTPut2 OFF", "SOURce2:SWEEp:STATe OFF",
-                "SOURce2:BURSt:STATe OFF", "SOURce2:MOD:STATe OFF"
+            "OUTPut1 OFF",
+            "SOURce1:SWEEp:STATe OFF",
+            "SOURce1:BURSt:STATe OFF",
+            "SOURce1:MOD:STATe OFF",
+            "OUTPut2 OFF",
+            "SOURce2:SWEEp:STATe OFF",
+            "SOURce2:BURSt:STATe OFF",
+            "SOURce2:MOD:STATe OFF",
         ]:
             command, value = command.split()
-            self.state[command] = '0'
+            self.state[command] = "0"
         else:
             command, value = command.split()
             self.state[command] = value
@@ -447,7 +510,6 @@ class DG4202MockInterface(Interface):
 
 
 class DG4202DataSource(DataSource):
-
     def __init__(self, device: DG4202):
         super().__init__(device)
         self.all_parameters = {}
@@ -457,9 +519,9 @@ class DG4202DataSource(DataSource):
             self.default_dict[f"{channel}"] = {
                 "waveform": {
                     "waveform_type": "SIN",
-                    "frequency": 0.,
-                    "amplitude": 0.,
-                    "offset": 0.,
+                    "frequency": 0.0,
+                    "amplitude": 0.0,
+                    "offset": 0.0,
                 },
                 "mode": {
                     "current_mode": "error",
@@ -472,10 +534,9 @@ class DG4202DataSource(DataSource):
                             "RTIME": 0,
                         },
                         "burst": "",
-                        "off": "",
-                    }
+                    },
                 },
-                "output_status": "OFF"
+                "output_status": "OFF",
             }
 
     def query_data(self) -> dict:
@@ -493,7 +554,7 @@ class DG4202DataSource(DataSource):
                     self.all_parameters[f"{channel}"] = {
                         "waveform": self.device.get_waveform_parameters(channel),
                         "mode": self.device.get_mode(channel),
-                        "output_status": self.device.get_output_status(channel)
+                        "output_status": self.device.get_output_status(channel),
                     }
                 self.all_parameters["connected"] = True
 

@@ -1,20 +1,20 @@
 import json
-from device.dg4202 import DG4202, DG4202Detector, DG4202Mock, DG4202DataSource
-from datetime import datetime, timedelta
-import time
-from features.scheduler import Scheduler, FunctionMap
-from pathlib import Path
 import os
-import pyvisa
-from device.data import DataBuffer
-from device.edux1002a import EDUX1002ADetector, EDUX1002A, EDUX1002ADataSource
+import time
+from datetime import datetime, timedelta
+from pathlib import Path
 from unittest.mock import MagicMock
+
+import pyvisa
+
+from device.data import DataBuffer
+from device.dg4202 import DG4202, DG4202DataSource, DG4202Detector, DG4202Mock
+from device.edux1002a import EDUX1002A, EDUX1002ADataSource, EDUX1002ADetector
 
 DEFAULT_DICT = {"dg_last_alive": None, "edux_last_alive": None}
 
 
 class StateManager:
-
     def __init__(self, json_file: Path = None):
         self.json_file = json_file or Path(os.getenv("DATA"), "state.json")
         self.birthdate = time.time()
@@ -22,7 +22,7 @@ class StateManager:
     def read_state(self) -> dict:
         try:
             if self.json_file.stat().st_size > 0:
-                with open(self.json_file, 'r') as f:
+                with open(self.json_file, "r") as f:
                     return json.load(f)
             else:
                 return {"dg_last_alive": None}
@@ -30,7 +30,7 @@ class StateManager:
             return {"dg_last_alive": None}
 
     def write_state(self, state: dict):
-        with open(self.json_file, 'w') as f:
+        with open(self.json_file, "w") as f:
             json.dump(state, f)
 
     def get_uptime(self):
@@ -46,9 +46,12 @@ class StateManager:
 
 
 class DG4202Manager:
-
-    def __init__(self, state_manager: StateManager, args_dict: dict,
-                 resource_manager: pyvisa.ResourceManager):
+    def __init__(
+        self,
+        state_manager: StateManager,
+        args_dict: dict,
+        resource_manager: pyvisa.ResourceManager,
+    ):
         self.state_manager = state_manager
         self.args_dict = args_dict
         self._mock_device = DG4202Mock()
@@ -58,10 +61,12 @@ class DG4202Manager:
         self._initialize_device()
 
     def _initialize_device(self):
-        if self.args_dict['hardware_mock']:
+        if self.args_dict["hardware_mock"]:
             self.dg4202_device = self._mock_device
         else:
-            self.dg4202_device = DG4202Detector(resource_manager=self.rm).detect_device()
+            self.dg4202_device = DG4202Detector(
+                resource_manager=self.rm
+            ).detect_device()
 
         self.data_source = DG4202DataSource(self.dg4202_device)
 
@@ -72,38 +77,9 @@ class DG4202Manager:
             return None
         return self.dg4202_device.output_on_off(*args, **kwargs)
 
-    def _initialize_function_map(self) -> FunctionMap:
-        # Use wrapper methods in function map
-        function_map = FunctionMap(id="dg4202_function_map")
-        function_map.register("TURN_ON_CH1",
-                              self._output_on_off_wrapper,
-                              default_kwargs={
-                                  'channel': 1,
-                                  'status': True
-                              })
-        function_map.register("TURN_ON_CH2",
-                              self._output_on_off_wrapper,
-                              default_kwargs={
-                                  'channel': 2,
-                                  'status': True
-                              })
-        function_map.register("TURN_OFF_CH1",
-                              self._output_on_off_wrapper,
-                              default_kwargs={
-                                  'channel': 1,
-                                  'status': False
-                              })
-        function_map.register("TURN_OFF_CH2",
-                              self._output_on_off_wrapper,
-                              default_kwargs={
-                                  'channel': 2,
-                                  'status': False
-                              })
-        return function_map
-
     def get_device(self) -> DG4202:
         """
-        Function to create a DG4202 device. 
+        Function to create a DG4202 device.
         Updates the state depending on the device creation.
 
         Args:
@@ -113,7 +89,7 @@ class DG4202Manager:
             DG4202: A DG4202 device object.
         """
         state = self.state_manager.read_state()
-        if self.args_dict['hardware_mock']:
+        if self.args_dict["hardware_mock"]:
             if self._mock_device.killed:
                 # Simulate dead device
                 state["dg_last_alive"] = None
@@ -125,7 +101,9 @@ class DG4202Manager:
                 self.state_manager.write_state(state)
                 self.dg4202_device = self._mock_device
         else:
-            self.dg4202_device = DG4202Detector(resource_manager=self.rm).detect_device()
+            self.dg4202_device = DG4202Detector(
+                resource_manager=self.rm
+            ).detect_device()
             if self.dg4202_device is None:
                 state["dg_last_alive"] = None  # Reset the uptime
             else:
@@ -155,9 +133,13 @@ class DG4202Manager:
 
 
 class EDUX1002AManager:
-
-    def __init__(self, state_manager: StateManager, args_dict: dict,
-                 resource_manager: pyvisa.ResourceManager, buffer_size: int):
+    def __init__(
+        self,
+        state_manager: StateManager,
+        args_dict: dict,
+        resource_manager: pyvisa.ResourceManager,
+        buffer_size: int,
+    ):
         self.state_manager = state_manager
         self.args_dict = args_dict
         self.rm = resource_manager
@@ -169,7 +151,7 @@ class EDUX1002AManager:
 
     def _initialize_device(self):
         detector = EDUX1002ADetector(resource_manager=self.rm)
-        if self.args_dict['hardware_mock']:
+        if self.args_dict["hardware_mock"]:
             self.edux1002a_device = self._mock_device
         else:
             self.edux1002a_device = detector.detect_device()
@@ -177,15 +159,19 @@ class EDUX1002AManager:
             print("Failed to initialize EDUX1002A device.")
             return
         self.buffers = {
-            1: DataBuffer(EDUX1002ADataSource(self.edux1002a_device, 1), self.buffer_size),
-            2: DataBuffer(EDUX1002ADataSource(self.edux1002a_device, 2), self.buffer_size)
+            1: DataBuffer(
+                EDUX1002ADataSource(self.edux1002a_device, 1), self.buffer_size
+            ),
+            2: DataBuffer(
+                EDUX1002ADataSource(self.edux1002a_device, 2), self.buffer_size
+            ),
         }
 
     def is_device_alive(self) -> bool:
         try:
             idn = self.edux1002a_device.interface.read("*IDN?")
             return "EDU-X 1002A" in idn
-        except:
+        except Exception as e:
             return False
 
     def _get_waveform_wrapper(self, *args, **kwargs):
@@ -194,17 +180,6 @@ class EDUX1002AManager:
             print(f"Device is disconnected at {datetime.now()}")
             return None
         return self.edux1002a_device.get_waveform(*args, **kwargs)
-
-    def _initialize_function_map(self) -> "FunctionMap":
-        # Use wrapper methods in function map
-        function_map = FunctionMap(id="edux1002a_function_map")
-        function_map.register("GET_WAVEFORM_CH1",
-                              self._get_waveform_wrapper,
-                              default_kwargs={'channel': 1})
-        function_map.register("GET_WAVEFORM_CH2",
-                              self._get_waveform_wrapper,
-                              default_kwargs={'channel': 2})
-        return function_map
 
     def get_device(self) -> EDUX1002A:
         """
@@ -216,7 +191,7 @@ class EDUX1002AManager:
             EDUX1002A: An EDUX1002A device object.
         """
         state = self.state_manager.read_state()
-        if self.args_dict['hardware_mock']:
+        if self.args_dict["hardware_mock"]:
             if self._mock_device.killed:
                 # Simulate dead device
                 state["edux_last_alive"] = None
@@ -229,13 +204,19 @@ class EDUX1002AManager:
                 self.edux1002a_device = self._mock_device
                 return self.edux1002a_device
         else:
-            self.edux1002a_device = EDUX1002ADetector(resource_manager=self.rm).detect_device()
+            self.edux1002a_device = EDUX1002ADetector(
+                resource_manager=self.rm
+            ).detect_device()
             if self.edux1002a_device is None:
                 state["edux_last_alive"] = None  # Reset the uptime
             else:
                 self.buffers = {
-                    1: DataBuffer(EDUX1002ADataSource(self.edux1002a_device, 1), self.buffer_size),
-                    2: DataBuffer(EDUX1002ADataSource(self.edux1002a_device, 2), self.buffer_size)
+                    1: DataBuffer(
+                        EDUX1002ADataSource(self.edux1002a_device, 1), self.buffer_size
+                    ),
+                    2: DataBuffer(
+                        EDUX1002ADataSource(self.edux1002a_device, 2), self.buffer_size
+                    ),
                 }
                 if state["edux_last_alive"] is None:
                     state["edux_last_alive"] = time.time()

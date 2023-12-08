@@ -1,24 +1,30 @@
-from PyQt6.QtWidgets import QPushButton, QWidget, QLabel
-from PyQt6.QtCore import QTimer
-from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QHBoxLayout, QGridLayout, QStackedLayout
-from abc import ABC, abstractmethod
-from PyQt6.QtWidgets import QPushButton
+from abc import abstractmethod
+
+from PyQt6.QtWidgets import (
+    QGridLayout,
+    QHBoxLayout,
+    QMainWindow,
+    QPushButton,
+    QStackedLayout,
+    QVBoxLayout,
+    QWidget,
+)
 
 
 class ModuleWidget(QWidget):
-
     def __init__(self, parent=None):
         super().__init__(parent)
 
     @abstractmethod
     def initUI(self, **kwargs):
-        """ Implement this method to define the layout for the widget """
+        """Implement this method to define the layout for the widget"""
         raise NotImplementedError
 
 
 class CollapsibleWidget(ModuleWidget):
-
-    def __init__(self, content_widget: QWidget, orientation: str = "horizontal", parent=None):
+    def __init__(
+        self, content_widget: QWidget, orientation: str = "horizontal", parent=None
+    ):
         super().__init__(parent)
         self.content_widget = content_widget
         self.orientation = orientation
@@ -40,7 +46,6 @@ class CollapsibleWidget(ModuleWidget):
 
 
 class ModularMainWindow(QMainWindow):
-
     def __init__(self):
         super().__init__()
 
