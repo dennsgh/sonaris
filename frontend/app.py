@@ -5,7 +5,7 @@ from typing import Dict, Optional
 import pyvisa
 from features.managers import DG4202Manager, EDUX1002AManager, StateManager
 from features.tasks import get_tasks
-from pages import experiment, factory, general, settings, scheduler
+from pages import experiment, factory, general, scheduler, settings
 from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget, QWidget
 from qt_material import apply_stylesheet
 from widgets.menu import MainMenuBar
@@ -50,8 +50,9 @@ def init_objects(args_dict: dict):
 
     factory.state_manager.write_state({"dg_last_alive": None})
 
-    for task_name, func_pointer in get_tasks():
-        factory.worker.register_task(func_pointer, task_name)
+    for _, task_dict in get_tasks().items():
+        for task_name, func_pointer in task_dict.items():
+            factory.worker.register_task(func_pointer, task_name)
 
 
 class MainWindow(ModularMainWindow):
@@ -72,9 +73,7 @@ class MainWindow(ModularMainWindow):
                 self,
                 args_dict=args_dict,
             ),
-            "Scheduler": scheduler.SchedulerPage(
-                args_dict,self,factory.timekeeper
-            ),
+            "Scheduler": scheduler.SchedulerPage(args_dict, self, factory.timekeeper),
             "Experiment": experiment.ExperimentPage(
                 factory.dg4202_manager, self, args_dict
             ),
@@ -108,7 +107,7 @@ def create_app(args_dict: dict) -> (QApplication, QMainWindow):
 
     app = QApplication([])
     window = MainWindow(args_dict)
-    apply_stylesheet(app, theme="dark_blue.xml")
+    apply_stylesheet(app, theme="dark_lightgreen.xml")
     window.setWindowTitle("mrilabs")
     window.show()
     return app, window

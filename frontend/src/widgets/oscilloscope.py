@@ -1,22 +1,30 @@
 import sys
+
+import header
 import numpy as np
 import pyqtgraph as pg
-from PyQt6.QtWidgets import QApplication, QVBoxLayout, QWidget, QHBoxLayout, QDoubleSpinBox, QLabel, QPushButton, QGroupBox
-from PyQt6.QtCore import QTimer
-from device.edux1002a import EDUX1002A, EDUX1002ADetector
-from widgets.templates import ModuleWidget
-import header
-from widgets.realtimeplot import RealtimeDisplay
-from device.data import DataBuffer
 from features.managers import EDUX1002AManager
+from PyQt6.QtWidgets import (
+    QApplication,
+    QDoubleSpinBox,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
+)
+from widgets.templates import ModuleWidget
+
+from device.edux1002a import EDUX1002ADetector
 
 
 class OscilloscopeWidget(ModuleWidget):
-
-    def __init__(self, edux1002a_manager: EDUX1002AManager, parent=None, tick: int = 100):
+    def __init__(
+        self, edux1002a_manager: EDUX1002AManager, parent=None, tick: int = 100
+    ):
         super().__init__(parent)
         self.edux1002a_manager = edux1002a_manager
-        #self.edux1002a_manager.edux1002a_device.interface.debug = True
+        # self.edux1002a_manager.edux1002a_device.interface.debug = True
         self.tick = tick  # ms, for now, you can adjust this
         self.active_channel = 1
         self.x_input = {1: None, 2: None}
@@ -29,15 +37,15 @@ class OscilloscopeWidget(ModuleWidget):
         self.timer.stop()
 
     def configuration(self):
-        """configuration
-        """
+        """configuration"""
         self.edux1002a_manager.edux1002a_device.set_acquisition_type("AVERage")
         self.edux1002a_manager.edux1002a_device.set_waveform_return_type("AVERage")
         self.edux1002a_manager.edux1002a_device.set_waveform_format("ASCII")
         self.edux1002a_manager.edux1002a_device.set_acquisition_complete(100)
         self.edux1002a_manager.edux1002a_device.set_acquisition_count(8)
         self.edux1002a_manager.edux1002a_device.set_waveform_points(
-            self.edux1002a_manager.buffer_size)
+            self.edux1002a_manager.buffer_size
+        )
 
     def update_spinbox_values(self, xRange, yRange, x_input, y_input):
         x_input.blockSignals(True)
@@ -66,24 +74,41 @@ class OscilloscopeWidget(ModuleWidget):
 
         self.x_input[channel] = QDoubleSpinBox()
         self.x_input[channel].setRange(-1e6, 1e6)
-        self.x_input[channel].valueChanged.connect(lambda val: (plot_widget.setXRange(
-            -val, val), self.x_input[channel].blockSignals(True), self.x_input[channel].setValue(
-                val), self.x_input[channel].blockSignals(False)))
+        self.x_input[channel].valueChanged.connect(
+            lambda val: (
+                plot_widget.setXRange(-val, val),
+                self.x_input[channel].blockSignals(True),
+                self.x_input[channel].setValue(val),
+                self.x_input[channel].blockSignals(False),
+            )
+        )
 
         axis_layout.addWidget(self.x_input[channel])
 
         x_zoom_in = QPushButton("+")
-        x_zoom_in.clicked.connect(lambda: (plot_widget.blockSignals(
-            True), plot_widget.setXRange(*[axis * 0.9 for axis in plot_widget.viewRange()[0]]),
-                                           plot_widget.blockSignals(False)))
+        x_zoom_in.clicked.connect(
+            lambda: (
+                plot_widget.blockSignals(True),
+                plot_widget.setXRange(
+                    *[axis * 0.9 for axis in plot_widget.viewRange()[0]]
+                ),
+                plot_widget.blockSignals(False),
+            )
+        )
 
         axis_layout.addWidget(x_zoom_in)
 
         x_zoom_out = QPushButton("-")
         # For X-axis zoom out button:
-        x_zoom_out.clicked.connect(lambda: (plot_widget.blockSignals(
-            True), plot_widget.setXRange(*[axis * 1.1 for axis in plot_widget.viewRange()[0]]),
-                                            plot_widget.blockSignals(False)))
+        x_zoom_out.clicked.connect(
+            lambda: (
+                plot_widget.blockSignals(True),
+                plot_widget.setXRange(
+                    *[axis * 1.1 for axis in plot_widget.viewRange()[0]]
+                ),
+                plot_widget.blockSignals(False),
+            )
+        )
         axis_layout.addWidget(x_zoom_out)
 
         axis_layout.addWidget(QLabel("Y-axis:"))
@@ -91,37 +116,56 @@ class OscilloscopeWidget(ModuleWidget):
         self.y_input[channel] = QDoubleSpinBox()
         self.y_input[channel].setRange(-1e6, 1e6)
         # For Y-axis spinbox:
-        self.y_input[channel].valueChanged.connect(lambda val: (plot_widget.setYRange(
-            -val, val), self.y_input[channel].blockSignals(True), self.y_input[channel].setValue(
-                val), self.y_input[channel].blockSignals(False)))
+        self.y_input[channel].valueChanged.connect(
+            lambda val: (
+                plot_widget.setYRange(-val, val),
+                self.y_input[channel].blockSignals(True),
+                self.y_input[channel].setValue(val),
+                self.y_input[channel].blockSignals(False),
+            )
+        )
 
         y_zoom_in = QPushButton("+")
-        y_zoom_in.clicked.connect(lambda: (plot_widget.blockSignals(
-            True), plot_widget.setYRange(*[axis * 0.9 for axis in plot_widget.viewRange()[1]]),
-                                           plot_widget.blockSignals(False)))
+        y_zoom_in.clicked.connect(
+            lambda: (
+                plot_widget.blockSignals(True),
+                plot_widget.setYRange(
+                    *[axis * 0.9 for axis in plot_widget.viewRange()[1]]
+                ),
+                plot_widget.blockSignals(False),
+            )
+        )
         axis_layout.addWidget(y_zoom_in)
 
         y_zoom_out = QPushButton("-")
-        y_zoom_out.clicked.connect(lambda: (plot_widget.blockSignals(
-            True), plot_widget.setYRange(*[axis * 1.1 for axis in plot_widget.viewRange()[1]]),
-                                            plot_widget.blockSignals(False)))
+        y_zoom_out.clicked.connect(
+            lambda: (
+                plot_widget.blockSignals(True),
+                plot_widget.setYRange(
+                    *[axis * 1.1 for axis in plot_widget.viewRange()[1]]
+                ),
+                plot_widget.blockSignals(False),
+            )
+        )
         axis_layout.addWidget(y_zoom_out)
 
         channel_layout.addLayout(axis_layout)
         channel_group.setLayout(channel_layout)
 
         plot_widget.setFixedHeight(200)  # Fixed height, adjust as needed
-        plot_widget.setBackground('k')  # Black background
+        plot_widget.setBackground("k")  # Black background
         plot_widget.showGrid(x=True, y=True, alpha=0.5)  # Grid with semi-transparency
 
         # Color and style for the plot axes to make it more oscilloscope-like
-        plot_widget.getAxis('left').setTextPen('w')
-        plot_widget.getAxis('left').setPen('w')
-        plot_widget.getAxis('bottom').setTextPen('w')
-        plot_widget.getAxis('bottom').setPen('w')
+        plot_widget.getAxis("left").setTextPen("w")
+        plot_widget.getAxis("left").setPen("w")
+        plot_widget.getAxis("bottom").setTextPen("w")
+        plot_widget.getAxis("bottom").setPen("w")
 
         # Inside _create_channel_ui
-        handler = self.make_range_changed_handler(self.x_input[channel], self.y_input[channel])
+        handler = self.make_range_changed_handler(
+            self.x_input[channel], self.y_input[channel]
+        )
         plot_widget.getViewBox().sigRangeChanged.connect(handler)
 
         # Inside _create_channel_ui, let's bind the channel buttons to the method to change channels
@@ -132,7 +176,6 @@ class OscilloscopeWidget(ModuleWidget):
         return channel_group, plot_data, channel_button
 
     def make_range_changed_handler(self, x_input, y_input):
-
         def handler(viewbox, ranges):
             xRange, yRange = ranges
             self.update_spinbox_values(xRange, yRange, x_input, y_input)
@@ -142,10 +185,14 @@ class OscilloscopeWidget(ModuleWidget):
     def initUI(self, **kwargs):
         layout = QHBoxLayout()
         self.plot_data = {1: None, 2: None}
-        channel1_ui, self.plot_data[1], self.channel1_button = self._create_channel_ui(1)
+        channel1_ui, self.plot_data[1], self.channel1_button = self._create_channel_ui(
+            1
+        )
         layout.addWidget(channel1_ui)
 
-        channel2_ui, self.plot_data[2], self.channel2_button = self._create_channel_ui(2)
+        channel2_ui, self.plot_data[2], self.channel2_button = self._create_channel_ui(
+            2
+        )
         layout.addWidget(channel2_ui)
 
         # Initialize channel button styles
@@ -158,7 +205,9 @@ class OscilloscopeWidget(ModuleWidget):
         button_layout.addWidget(self.freeze_button)
 
         self.auto_button = QPushButton("AUTO")
-        self.auto_button.clicked.connect(self.edux1002a_manager.edux1002a_device.autoscale)
+        self.auto_button.clicked.connect(
+            self.edux1002a_manager.edux1002a_device.autoscale
+        )
         button_layout.addWidget(self.auto_button)
         self.setLayout(layout)
 
@@ -191,8 +240,7 @@ class OscilloscopeWidget(ModuleWidget):
             self.freeze()
 
     def freeze(self):
-        """Stop updating the waveform
-        """
+        """Stop updating the waveform"""
         self.freeze_button.setText("START")
         self.timer.stop()
 
@@ -211,6 +259,7 @@ class OscilloscopeWidget(ModuleWidget):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     import pyvisa
+
     # Here you'd initialize your Interface and EDUX1002A class instances.
     rm = pyvisa.ResourceManager()
     oscilloscope = EDUX1002ADetector(rm).detect_device()

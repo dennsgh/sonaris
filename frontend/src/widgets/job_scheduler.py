@@ -1,12 +1,15 @@
 from datetime import datetime, timedelta
 
 from features.tasks import get_tasks
+from header import DeviceName
 from pages import factory
 from PyQt6.QtWidgets import (
     QApplication,
     QComboBox,
     QDateTimeEdit,
     QDialog,
+    QGridLayout,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -18,7 +21,6 @@ from PyQt6.QtWidgets import (
 )
 from widgets.parameters import ParameterConfiguration
 
-from device.dg4202 import DG4202
 from scheduler.timekeeper import Timekeeper
 
 
@@ -67,38 +69,86 @@ class SchedulerWidget(QWidget):
 class JobConfigPopup(QDialog):
     def __init__(self, timekeeper: Timekeeper):
         super().__init__()
+        self.resize(800, 640)
+        self.parameterConfig = ParameterConfiguration(self)
         self.timekeeper = timekeeper
         self.deviceSelect = QComboBox(self)
         self.taskSelect = QComboBox(self)
+
+        # Add items to device select combo box and set initial selection
         self.deviceSelect.addItems(factory.DEVICE_LIST)
+        if self.deviceSelect.count() > 0:
+            self.deviceSelect.setCurrentIndex(0)  # Set initial value to first option
+            self.updateTaskList()  # Update task list based on selected device
+
+        # Connect signals
         self.deviceSelect.currentIndexChanged.connect(self.updateTaskList)
         self.taskSelect.currentIndexChanged.connect(self.updateParameterUI)
-        self.parameterConfig = ParameterConfiguration(self)
+
         self.initUI()
 
     def initUI(self):
-        # Main horizontal layout
-        mainLayout = QHBoxLayout(self)
+        # Overall grid layout
+        gridLayout = QGridLayout(self)
 
-        # Left column for device selection, task selection and time configuration
-        leftLayout = QVBoxLayout()
-        leftLayout.addWidget(QLabel("Select Device:"))
-        leftLayout.addWidget(self.deviceSelect)
-        leftLayout.addWidget(QLabel("Select Task:"))
-        leftLayout.addWidget(self.taskSelect)
-        self.setupTimeConfiguration(leftLayout)
-        mainLayout.addLayout(leftLayout)
+        # Configuration group at the top
+        configurationGroup = QGroupBox("Configuration")
+        configurationLayout = QHBoxLayout(configurationGroup)
+        configurationLayout.addWidget(QLabel("Select Device:"))
+        configurationLayout.addWidget(self.deviceSelect)
+        configurationLayout.addWidget(QLabel("Select Task:"))
+        configurationLayout.addWidget(self.taskSelect)
+        gridLayout.addWidget(configurationGroup, 0, 0, 1, 2)  # Span 1 row, 2 columns
 
-        # Right column for parameter configuration
-        mainLayout.addWidget(self.parameterConfig)
+        # Time configuration on the second row, left side
+        timeConfigGroup = QGroupBox()
+        timeConfigLayout = QHBoxLayout(timeConfigGroup)
+        self.timeConfigComboBox = QComboBox(self)
+        self.timeConfigComboBox.addItems(["Timestamp", "Duration"])
+        timeConfigLayout.addWidget(self.timeConfigComboBox)
+        self.setupTimeConfiguration(timeConfigLayout)  # Add time configuration widgets
+        gridLayout.addWidget(
+            timeConfigGroup, 1, 0
+        )  # This will be on the second row, first column
 
-        # OK and Cancel buttons
+        # Parameter configuration on the second row, right side, taking up two columns
+        parameterConfigGroup = QGroupBox("Parameter Configuration")
+        parameterConfigLayout = QVBoxLayout(parameterConfigGroup)
+        parameterConfigLayout.addWidget(self.parameterConfig)
+        gridLayout.addWidget(
+            parameterConfigGroup, 1, 1
+        )  # This will be on the second row, second column
+
+        # Adjust the column stretch factors according to the desired ratio
+        gridLayout.setColumnStretch(
+            0, 1
+        )  # This sets the stretch factor for the first column
+        gridLayout.setColumnStretch(
+            1, 2
+        )  # This sets the stretch factor for the second column
+
+        # Third row for OK and Cancel buttons
+        buttonsLayout = QHBoxLayout()
         self.okButton = QPushButton("OK", self)
         self.okButton.clicked.connect(self.accept)
-        self.layout().addWidget(self.okButton)
+        buttonsLayout.addWidget(self.okButton)
         self.cancelButton = QPushButton("Cancel", self)
         self.cancelButton.clicked.connect(self.reject)
-        self.layout().addWidget(self.cancelButton)
+        buttonsLayout.addWidget(self.cancelButton)
+
+        # Add the buttonsLayout to the grid
+        gridLayout.addLayout(buttonsLayout, 2, 0, 1, 2)  # Span 1 row and 2 columns
+
+        # Set the layout for the QDialog
+        self.setLayout(gridLayout)
+
+        # Style the QDialog
+
+    def updateTimeConfigurationVisibility(self, selection):
+        # Show or hide time inputs based on the combobox selection
+        isTimestamp = selection == "Timestamp"
+        for input in self.timeInputs:
+            input.setVisible(isTimestamp)
 
     def updateTaskList(self):
         # Update the task list based on the selected device
@@ -106,6 +156,16 @@ class JobConfigPopup(QDialog):
         tasks = get_tasks().get(selected_device, {}).keys()
         self.taskSelect.clear()
         self.taskSelect.addItems(tasks)
+        if self.taskSelect.count() > 0:
+            self.taskSelect.setCurrentIndex(0)  # Set initial value to first option
+
+        # Update parameter UI based on initial selections
+        self.updateParameterUI()
+
+    def updateParameterUI(self):
+        selected_device = self.deviceSelect.currentText()
+        selected_task = self.taskSelect.currentText()
+        self.parameterConfig.updateUI(selected_device, selected_task)
 
     def updateUI(self):
         selected_device = self.deviceSelect.currentText()
@@ -113,29 +173,19 @@ class JobConfigPopup(QDialog):
         self.parameterConfig.updateUI(selected_device, selected_task)
 
     def setupTimeConfiguration(self, layout):
-        # Time configuration options
-        self.timestampRadioButton = QRadioButton("Timestamp")
-        self.durationRadioButton = QRadioButton("Duration")
-        layout.addWidget(self.timestampRadioButton)
-        layout.addWidget(self.durationRadioButton)
-
-        # Connect radio button signals to a method to toggle input visibility
-        self.timestampRadioButton.toggled.connect(self.toggleTimeInputs)
-        self.durationRadioButton.toggled.connect(self.toggleTimeInputs)
-
-        # Timestamp inputs (default: datetime.now())
-        self.timestampInputs = self.createDateTimeInputs(datetime.now())
-        for input in self.timestampInputs:
+        # You might need to adjust the logic here to align with the new combobox selection.
+        # For now, let's just create the inputs based on the current selection.
+        self.timeInputs = self.createDateTimeInputs(datetime.now())
+        for input in self.timeInputs:
             layout.addWidget(input)
+        self.updateTimeConfigurationVisibility(self.timeConfigComboBox.currentText())
 
-        # Duration inputs (default: 0s)
-        self.durationInputs = self.createDateTimeInputs(timedelta(seconds=0))
-        for input in self.durationInputs:
-            layout.addWidget(input)
-            input.setVisible(False)
-
-        # Set default selection
-        self.timestampRadioButton.setChecked(True)
+        # Connect the signal of the combobox to update the visibility of the time inputs
+        self.timeConfigComboBox.currentIndexChanged.connect(
+            lambda: self.updateTimeConfigurationVisibility(
+                self.timeConfigComboBox.currentText()
+            )
+        )
 
     def createDateTimeInputs(self, default_value):
         # Create input fields for date-time or duration
@@ -155,38 +205,6 @@ class JobConfigPopup(QDialog):
         for input in self.durationInputs:
             input.setVisible(not isTimestamp)
 
-    def configureDG4202WaveParameters(self):
-        # Channel input
-        self.channelInput = QComboBox(self)
-        self.channelInput.addItems(["1", "2"])
-        self.deviceSpecificLayout.addWidget(QLabel("Channel:"))
-        self.deviceSpecificLayout.addWidget(self.channelInput)
-
-        # Waveform type dropdown
-        self.waveformTypeInput = QComboBox(self)
-        self.waveformTypeInput.addItems(DG4202.available_waveforms())
-        self.deviceSpecificLayout.addWidget(QLabel("Waveform Type:"))
-        self.deviceSpecificLayout.addWidget(self.waveformTypeInput)
-
-        # Frequency input
-        self.frequencyInput = QLineEdit(self)
-        self.deviceSpecificLayout.addWidget(QLabel("Frequency (Hz):"))
-        self.deviceSpecificLayout.addWidget(self.frequencyInput)
-
-        # Amplitude input
-        self.amplitudeInput = QLineEdit(self)
-        self.deviceSpecificLayout.addWidget(QLabel("Amplitude:"))
-        self.deviceSpecificLayout.addWidget(self.amplitudeInput)
-
-        # Offset input
-        self.offsetInput = QLineEdit(self)
-        self.deviceSpecificLayout.addWidget(QLabel("Offset:"))
-        self.deviceSpecificLayout.addWidget(self.offsetInput)
-
-    def configureEDUX1002AParameters(self):
-        self.channelInput = QLineEdit(self)
-        self.deviceSpecificLayout.addWidget(self.channelInput)
-
     def accept(self):
         # Schedule the task with either timestamp or duration
         selected_device = self.deviceSelect.currentText()
@@ -198,13 +216,17 @@ class JobConfigPopup(QDialog):
 
         if selected_device == DeviceName.DG4202.value:
             task_name = "task_set_waveform_parameters"
-            params = self.getDG4202Parameters()
+            params = self.getParameters()
             self.timekeeper.add_job(task_name, schedule_time, **params)
         elif selected_device == DeviceName.EDUX1002A.value:
             # Handling for EDUX1002A
             pass
 
         super().accept()
+
+    def getParameters(self):
+        # to implement
+        return {}
 
     def getDateTimeFromInputs(self, inputs, duration=False):
         # Create a datetime or timedelta object from input fields
@@ -229,27 +251,6 @@ class JobConfigPopup(QDialog):
                 second=values[5],
                 microsecond=values[6] * 1000,
             )
-
-    def getDG4202Parameters(self):
-        # Retrieve values from UI elements
-        channel = int(self.channelInput.text())
-        waveform_type = self.waveformTypeInput.currentText()
-        frequency = float(self.frequencyInput.text())
-        amplitude = float(self.amplitudeInput.text())
-        offset = float(self.offsetInput.text())
-
-        # Construct the parameter dictionary
-        params = {
-            "channel": channel,
-            "waveform_type": waveform_type,
-            "frequency": frequency,
-            "amplitude": amplitude,
-            "offset": offset,
-        }
-        return params
-
-    def getEDUX1002AParameters(self):
-        pass
 
 
 # Rest of the application code remains the same

@@ -26,10 +26,10 @@ def task_set_sweep_parameters(
 
 
 def get_tasks() -> dict:
-    """Returns the (name,func_pointer) list of tuples
+    """Returns the dict of { device : { task-name : func_pointer , ..} ..}
 
     Returns:
-        List[Tuple]: list of tuples containing function name and its pointer
+        dict: dictionary containing devices and its tasks.
     """
 
     task_dictionary = {
@@ -48,7 +48,7 @@ TASK_USER_INTERFACE_DICTIONARY = {
         TaskName.TOGGLE.value: [
             # Example specification
             {"type": "QComboBox", "label": "Channel", "options": ["1", "2"]},
-            {"type": "QComboBox", "label": "Channel", "options": ["ON", "OFF"]},
+            {"type": "QComboBox", "label": "Switch to", "options": ["ON", "OFF"]},
         ],
         TaskName.SET_WAVEFORM.value: [
             {"type": "QComboBox", "label": "Channel", "options": ["1", "2"]},
