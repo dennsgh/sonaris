@@ -1,20 +1,20 @@
-from collections import deque
-import numpy as np
 import abc
+from collections import deque
+
+import numpy as np
 
 
 class DataSource(abc.ABC):
-
     def __init__(self, device: abc.ABC):
         self.device: abc.ABC = device
         pass
 
+    @abc.abstractmethod
     def query_data(self):
         raise NotImplementedError
 
 
 class DataBuffer:
-
     def __init__(self, data_source: DataSource, buffer_size: int = 128):
         self.buffer = deque(maxlen=buffer_size)
         self.data_source = data_source

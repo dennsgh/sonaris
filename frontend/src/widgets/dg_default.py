@@ -29,7 +29,7 @@ DEFAULT_TAB_STYLE = {"height": "30px", "padding": "2px"}
 class DG4202DefaultWidget(QWidget):
     def check_connection(self) -> bool:
         self.my_generator = self.dg4202_manager.get_device()
-        self.all_parameters = self.dg4202_manager.data_source.query_data()
+        self.all_parameters = self.dg4202_manager.get_data()
         if self.my_generator is not None:
             is_alive = self.my_generator.is_connection_alive()
             if not is_alive:
@@ -46,7 +46,7 @@ class DG4202DefaultWidget(QWidget):
         self.link_channel = False
         self.dg4202_manager = dg4202_manager
         self.my_generator = self.dg4202_manager.get_device()
-        self.all_parameters = self.dg4202_manager.data_source.query_data()
+        self.all_parameters = self.dg4202_manager.get_data()
         # Init UI
         self.initUI()
 

@@ -27,6 +27,11 @@ def task_set_sweep_parameters(
 
 
 def get_tasks() -> List[Tuple]:
+    """Returns the (name,func_pointer) list of tuples
+
+    Returns:
+        List[Tuple]: list of tuples containing function name and its pointer
+    """
     task_functions = [
         task_on_off_dg4202,
         task_set_waveform_parameters,

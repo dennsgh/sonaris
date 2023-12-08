@@ -7,7 +7,7 @@ from typing import Dict, Optional
 import pyvisa
 from features.managers import DG4202Manager, EDUX1002AManager, StateManager
 from features.tasks import get_tasks
-from pages import experiment, factory, general, settings
+from pages import experiment, factory, general, settings, scheduler
 from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget, QWidget
 from qt_material import apply_stylesheet
 from widgets.menu import MainMenuBar
@@ -41,13 +41,13 @@ def init_objects(args_dict: dict):
         resource_manager=factory.resource_manager,
     )
     factory.worker = Worker(
-        function_map_file=Path(os.getenv("DATA"), "registered_tasks.json"),
-        logfile=Path(os.getenv("LOGS"), "worker.log"),
+        function_map_file=factory.FUNCTION_MAP_FILE,
+        logfile=factory.WORKER_LOGS,
     )
     factory.timekeeper = Timekeeper(
-        persistence_file=Path(os.getenv("DATA"), "jobs.json"),
+        persistence_file=factory.TIMEKEEPER_JOBS_FILE,
         worker_instance=factory.worker,
-        logfile=Path(os.getenv("LOGS"), "timekeeper.log"),
+        logfile=factory.TIMEKEEPER_LOGS,
     )
 
     factory.state_manager.write_state({"dg_last_alive": None})
@@ -73,6 +73,9 @@ class MainWindow(ModularMainWindow):
                 factory.edux1002a_manager,
                 self,
                 args_dict=args_dict,
+            ),
+            "Scheduler": scheduler.SchedulerPage(
+                args_dict,self,factory.timekeeper
             ),
             "Experiment": experiment.ExperimentPage(
                 factory.dg4202_manager, self, args_dict

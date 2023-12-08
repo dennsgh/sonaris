@@ -52,11 +52,11 @@ class DG4202Manager:
         args_dict: dict,
         resource_manager: pyvisa.ResourceManager,
     ):
-        self.state_manager = state_manager
-        self.args_dict = args_dict
+        self.state_manager: StateManager = state_manager
+        self.args_dict: dict = args_dict
         self._mock_device = DG4202Mock()
-        self.rm = resource_manager
-        self.data_source = None
+        self.rm: pyvisa.ResourceManager = resource_manager
+        self.data_source: DG4202DataSource = None
         self._initialize_device()
 
     def _initialize_device(self):
@@ -112,7 +112,7 @@ class DG4202Manager:
         self.data_source = DG4202DataSource(self.dg4202_device)
         return self.dg4202_device
 
-    def get_device_uptime(self, args_dict: dict):
+    def get_device_uptime(self, args_dict: dict) -> str:
         """
         Function to get device uptime from last known device uptime.
 
@@ -129,6 +129,9 @@ class DG4202Manager:
             return uptime_str
         else:
             return "N/A"
+
+    def get_data(self) -> dict:
+        return self.data_source.query_data() or {}
 
 
 class EDUX1002AManager:
@@ -220,3 +223,6 @@ class EDUX1002AManager:
                     state["edux_last_alive"] = time.time()
             self.state_manager.write_state(state)
             return self.edux1002a_device
+
+    def get_data(self) -> dict:
+        return {1: self.buffers[1].get_data(), 2: self.buffers[2].get_data()}
