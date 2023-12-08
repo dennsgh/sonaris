@@ -1,6 +1,5 @@
-from typing import List, Tuple
-
 from features.managers import DG4202Manager
+from header import DeviceName, TaskName
 
 
 def task_on_off_dg4202(
@@ -26,19 +25,50 @@ def task_set_sweep_parameters(
     return True
 
 
-def get_tasks() -> List[Tuple]:
+def get_tasks() -> dict:
     """Returns the (name,func_pointer) list of tuples
 
     Returns:
         List[Tuple]: list of tuples containing function name and its pointer
     """
-    task_functions = [
-        task_on_off_dg4202,
-        task_set_waveform_parameters,
-        task_set_sweep_parameters,
-    ]
-    task_tuples = [(func.__name__, func) for func in task_functions]
-    return task_tuples
+
+    task_dictionary = {
+        DeviceName.DG4202.value: {
+            TaskName.TOGGLE.value: task_on_off_dg4202,
+            TaskName.SET_WAVEFORM.value: task_set_waveform_parameters,
+            TaskName.SET_SWEEP.value: task_set_sweep_parameters,
+        },
+        DeviceName.EDUX1002A.value: {},
+    }
+    return task_dictionary
+
+
+TASK_USER_INTERFACE_DICTIONARY = {
+    DeviceName.DG4202.value: {
+        TaskName.TOGGLE.value: [
+            # Example specification
+            {"type": "QComboBox", "label": "Channel", "options": ["1", "2"]},
+            {"type": "QComboBox", "label": "Channel", "options": ["ON", "OFF"]},
+        ],
+        TaskName.SET_WAVEFORM.value: [
+            {"type": "QComboBox", "label": "Channel", "options": ["1", "2"]},
+            {
+                "type": "QComboBox",
+                "label": "Waveform Type",
+                "options_function": "DG4202.available_waveforms",
+            },
+            {"type": "QLineEdit", "label": "Frequency (Hz)"},
+            {"type": "QLineEdit", "label": "Amplitude"},
+            {"type": "QLineEdit", "label": "Offset"},
+        ],
+        TaskName.SET_SWEEP.value: [
+            # ... UI components for sweep parameters
+        ],
+    },
+    DeviceName.EDUX1002A.value: {
+        # ... UI specifications for EDUX1002A tasks
+    },
+}
 
 
 if __name__ == "__main__":

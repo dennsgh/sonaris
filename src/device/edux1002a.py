@@ -8,43 +8,6 @@ from device.data import DataSource
 from device.interface import EthernetInterface, Interface, USBInterface
 
 
-class EDUX1002ADetector:
-    def __init__(self, resource_manager: pyvisa.ResourceManager):
-        self.rm = resource_manager
-
-    def detect_device(self) -> Optional["EDUX1002A"]:
-        """
-        Method that attempts to detect a EDUX1002A device connected via TCP/IP or USB.
-        Loops through all available resources, attempting to open each one and query its identity.
-        If a EDUX1002A device is found, it creates and returns a DG4202 instance.
-
-        Returns:
-            EDUX1002A: An instance of the EDUX1002A class connected to the detected device,
-                    or None if no such device is found.
-        """
-        resources = self.rm.list_resources()
-
-        for resource in resources:
-            if re.match("^TCPIP", resource):
-                try:
-                    device = self.rm.open_resource(resource)
-                    idn = device.query("*IDN?")
-                    if "EDU-X 1002A" in idn:
-                        return EDUX1002A(EthernetInterface(device))
-                except pyvisa.errors.VisaIOError:
-                    pass
-            elif re.match("^USB", resource):
-                try:
-                    device = self.rm.open_resource(resource)
-                    idn = device.query("*IDN?")
-                    if "EDU-X 1002A" in idn:
-                        return EDUX1002A(USBInterface(device))
-                except pyvisa.errors.VisaIOError:
-                    pass
-
-        return None
-
-
 class EDUX1002A:
     """Keysight EDUX1002A hardware driver/wrapper."""
 
@@ -317,6 +280,43 @@ class EDUX1002A:
             )
 
         self.interface.write(f":ACQuire:COUNt {count}")
+
+
+class EDUX1002ADetector:
+    def __init__(self, resource_manager: pyvisa.ResourceManager):
+        self.rm = resource_manager
+
+    def detect_device(self) -> Optional[EDUX1002A]:
+        """
+        Method that attempts to detect a EDUX1002A device connected via TCP/IP or USB.
+        Loops through all available resources, attempting to open each one and query its identity.
+        If a EDUX1002A device is found, it creates and returns a DG4202 instance.
+
+        Returns:
+            EDUX1002A: An instance of the EDUX1002A class connected to the detected device,
+                    or None if no such device is found.
+        """
+        resources = self.rm.list_resources()
+
+        for resource in resources:
+            if re.match("^TCPIP", resource):
+                try:
+                    device = self.rm.open_resource(resource)
+                    idn = device.query("*IDN?")
+                    if "EDU-X 1002A" in idn:
+                        return EDUX1002A(EthernetInterface(device))
+                except pyvisa.errors.VisaIOError:
+                    pass
+            elif re.match("^USB", resource):
+                try:
+                    device = self.rm.open_resource(resource)
+                    idn = device.query("*IDN?")
+                    if "EDU-X 1002A" in idn:
+                        return EDUX1002A(USBInterface(device))
+                except pyvisa.errors.VisaIOError:
+                    pass
+
+        return None
 
 
 class EDUX1002ADataSource(DataSource):

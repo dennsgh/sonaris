@@ -7,43 +7,6 @@ from device.data import DataSource
 from device.interface import EthernetInterface, Interface, USBInterface
 
 
-class DG4202Detector:
-    def __init__(self, resource_manager: pyvisa.ResourceManager):
-        self.rm = resource_manager
-
-    def detect_device(self) -> Optional["DG4202"]:
-        """
-        Method that attempts to detect a DG4202 device connected via TCP/IP or USB.
-        Loops through all available resources, attempting to open each one and query its identity.
-        If a DG4202 device is found, it creates and returns a DG4202 instance.
-
-        Returns:
-            DG4202: An instance of the DG4202 class connected to the detected device,
-                    or None if no such device is found.
-        """
-        resources = self.rm.list_resources()
-
-        for resource in resources:
-            if re.match("^TCPIP", resource):
-                try:
-                    device = self.rm.open_resource(resource)
-                    idn = device.query("*IDN?")
-                    if "DG4202" in idn:
-                        return DG4202(EthernetInterface(device))
-                except pyvisa.errors.VisaIOError:
-                    pass
-            elif re.match("^USB", resource):
-                try:
-                    device = self.rm.open_resource(resource)
-                    idn = device.query("*IDN?")
-                    if "DG4202" in idn:
-                        return DG4202(USBInterface(device))
-                except pyvisa.errors.VisaIOError:
-                    pass
-
-        return None
-
-
 class DG4202:
     @staticmethod
     def available_waveforms() -> List[str]:
@@ -91,11 +54,11 @@ class DG4202:
         if params is None:
             params = {}  # Create an empty dictionary if params is None
 
+        channel = channel or params.get("channel")
         waveform_type = waveform_type or params.get("waveform_type")
         frequency = frequency or params.get("frequency")
         amplitude = amplitude or params.get("amplitude")
         offset = offset or params.get("offset")
-
         if waveform_type is not None:
             self.interface.write(f"SOURce{channel}:FUNCtion {waveform_type}")
         if frequency is not None:
@@ -372,6 +335,43 @@ class DG4202:
             return True
         except:
             return False
+
+
+class DG4202Detector:
+    def __init__(self, resource_manager: pyvisa.ResourceManager):
+        self.rm = resource_manager
+
+    def detect_device(self) -> Optional[DG4202]:
+        """
+        Method that attempts to detect a DG4202 device connected via TCP/IP or USB.
+        Loops through all available resources, attempting to open each one and query its identity.
+        If a DG4202 device is found, it creates and returns a DG4202 instance.
+
+        Returns:
+            DG4202: An instance of the DG4202 class connected to the detected device,
+                    or None if no such device is found.
+        """
+        resources = self.rm.list_resources()
+
+        for resource in resources:
+            if re.match("^TCPIP", resource):
+                try:
+                    device = self.rm.open_resource(resource)
+                    idn = device.query("*IDN?")
+                    if "DG4202" in idn:
+                        return DG4202(EthernetInterface(device))
+                except pyvisa.errors.VisaIOError:
+                    pass
+            elif re.match("^USB", resource):
+                try:
+                    device = self.rm.open_resource(resource)
+                    idn = device.query("*IDN?")
+                    if "DG4202" in idn:
+                        return DG4202(USBInterface(device))
+                except pyvisa.errors.VisaIOError:
+                    pass
+
+        return None
 
 
 class DG4202Mock(DG4202):

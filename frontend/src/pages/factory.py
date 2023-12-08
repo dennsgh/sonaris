@@ -4,11 +4,12 @@ from pathlib import Path
 
 import pyvisa
 from features.managers import DG4202Manager, EDUX1002AManager, StateManager
+from header import DeviceName
 
 from scheduler.timekeeper import Timekeeper
 from scheduler.worker import Worker
 
-DEVICE_LIST = ["DG4202", "EDUX1002A"]
+DEVICE_LIST = [DeviceName.DG4202.value, DeviceName.EDUX1002A.value]
 
 # DG4202_MOCK_DEVICE = DG4202Mock()
 # ======================================================== #
