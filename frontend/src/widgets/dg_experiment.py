@@ -23,6 +23,7 @@ class DG4202ExperimentWidget(QWidget):
         self.dg4202_manager = dg4202_manager
         self.my_generator = self.dg4202_manager.get_device()
         self.all_parameters = self.dg4202_manager.data_source.query_data()
+        self.input_params = {1: {}, 2: {}}
         self.initUI()
 
     def initUI(self):
@@ -41,13 +42,8 @@ class DG4202ExperimentWidget(QWidget):
             row = (channel - 1) * 8  # Start new channel setup at a new row
             self.initialize_channel_controls(channel, row)
 
-        # Start button
-        self.start_button = QPushButton("Start Experiment")
-        self.start_button.clicked.connect(self.start_experiment)
-
         # Add layouts to main layout
         self.layout.addLayout(self.grid_layout)
-        self.layout.addWidget(self.start_button)
         self.setLayout(self.layout)
 
         # Initially, Channel 2 controls will be disabled
@@ -84,16 +80,6 @@ class DG4202ExperimentWidget(QWidget):
         )
         self.grid_layout.addWidget(offset_input, start_row + 3, 1)
 
-        # Store the controls for later access
-        self.channels_params[channel] = {
-            "mode_combo": mode_combo,
-            "freq_input": freq_input,
-            "amp_input": amp_input,
-            "offset_input": offset_input,
-            # Initialize remaining controls similarly...
-        }
-
-        # If Sweep mode, initialize sweep-specific controls
         if mode == "Sweep":
             sweep_time_input = QLineEdit(
                 str(
@@ -144,12 +130,12 @@ class DG4202ExperimentWidget(QWidget):
             self.grid_layout.addWidget(stop_freq_input, start_row + 7, 1)
 
             # Add sweep-specific controls to channels_params
-            self.channels_params[channel].update(
+            self.input_params[channel].update(
                 {
-                    "sweep_time_input": sweep_time_input,
-                    "return_time_input": return_time_input,
-                    "start_freq_input": start_freq_input,
-                    "stop_freq_input": stop_freq_input,
+                    "TIME": sweep_time_input,
+                    "RTIME": return_time_input,
+                    "FSTART": start_freq_input,
+                    "FSTOP": stop_freq_input,
                 }
             )
 
@@ -158,46 +144,9 @@ class DG4202ExperimentWidget(QWidget):
         self.toggle_channel_controls(2, state == Qt.CheckState.Checked)
 
     def toggle_channel_controls(self, channel, enabled):
-        for control in self.channels_params[channel].values():
+        for control in self.input_params[channel].values():
             control.setEnabled(enabled)
             if not enabled:
                 control.setStyleSheet("background-color: #e0e0e0; color: #a0a0a0;")
             else:
                 control.setStyleSheet("")
-
-    def start_experiment(self):
-        # Gather the parameters for both channels
-        ch1_params = self.get_channel_parameters(1)
-        ch2_params = (
-            self.get_channel_parameters(2)
-            if self.enable_channel_checkbox.isChecked()
-            else None
-        )
-
-        # Log experiment start
-        self.log_experiment_details(ch1_params, ch2_params)
-
-        # TODO: Configure the generator with the collected parameters
-        # self.dg4202_manager.configure_experiment(ch1_params, ch2_params)
-
-    def get_channel_parameters(self, channel: int):
-        params = self.all_parameters[channel]
-        return {
-            "mode": params["mode_combo"].currentText(),
-            "frequency": params["freq_input"].text(),
-            "amplitude": params["amp_input"].text(),
-            "offset": params["offset_input"].text(),
-            "sweep_time": params["sweep_time_input"].text(),
-            "return_time": params["return_time_input"].text(),
-            "start_frequency": params["start_freq_input"].text(),
-            "stop_frequency": params["stop_freq_input"].text(),
-        }
-
-    def log_experiment_details(self, ch1_params, ch2_params):
-        log_details = {
-            "timestamp": datetime.now().isoformat(),
-            "channel_1": ch1_params,
-            "channel_2": ch2_params,
-        }
-        with open("experiment_log.json", "w") as log_file:
-            json.dump(log_details, log_file, indent=4)
