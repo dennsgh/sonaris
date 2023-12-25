@@ -4,7 +4,7 @@ import logging
 import os
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Callable, Dict
 
 from seledri.worker import Worker
 
@@ -16,6 +16,7 @@ class Timekeeper:
         worker_instance: Worker,
         logfile: Path = None,
         logger: logging.Logger = None,
+        user_callback: Callable = None,
     ):
         """
         Initializes the Timekeeper class, responsible for managing and scheduling jobs.
@@ -32,6 +33,10 @@ class Timekeeper:
         self._configure_logging()
         self.reload_function_map()
         self.__reschedule_jobs__()
+        self.user_callback = user_callback
+
+    def set_callback(self, user_callback: Callable) -> None:
+        self.user_callback = user_callback
 
     def _configure_logging(self) -> None:
         """
@@ -129,7 +134,7 @@ class Timekeeper:
             job_info["task"],
             schedule_time,
             job_id,
-            self.remove_job,
+            self.callback,
             **job_info["kwargs"],
         )
 
@@ -158,11 +163,11 @@ class Timekeeper:
                 job_info["task"],
                 schedule_time,
                 job_id,
-                self.remove_job,
+                self.callback,
                 **job_info["kwargs"],
             )
 
-    def remove_job(self, job_id: str) -> None:
+    def callback(self, job_id: str) -> None:
         """
         Removes a job from the schedule.
 
@@ -172,6 +177,8 @@ class Timekeeper:
         self.jobs.pop(job_id)
         self.save_jobs()
         self.logger.info(f"Job {job_id} removed.")
+        if self.user_callback is not None:
+            self.user_callback()
 
     def prune(self) -> None:
         """

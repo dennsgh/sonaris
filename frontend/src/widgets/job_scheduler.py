@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Callable
 
-from features.tasks import get_tasks
+from features.tasks import TASK_USER_INTERFACE_DICTIONARY, get_tasks
 from header import DeviceName
 from pages import factory
 from PyQt6.QtWidgets import (
@@ -31,6 +31,7 @@ class SchedulerWidget(QWidget):
         # update to unpack getting ALL task names regardless of device for the widget, since it only looks at jobs.json
         self.timekeeper = timekeeper or factory.timekeeper
         self.popup = JobConfigPopup(self.timekeeper, self.popup_callback)
+        self.timekeeper.set_callback(self.popup_callback)
         self.initUI()
 
     def initUI(self):
@@ -265,17 +266,25 @@ class JobConfigPopup(QDialog):
     def accept(self):
         # Schedule the task with either timestamp or duration
         selected_device = self.deviceSelect.currentText()
+        selected_task = self.taskSelect.currentText()
         schedule_time = self.getDateTimeFromInputs()
 
+        # Retrieve task specifications for the selected task
+        task_spec = TASK_USER_INTERFACE_DICTIONARY[selected_device][selected_task]
+
+        # Get parameters from ParameterConfiguration
+        params = self.parameterConfig.get_parameters(task_spec)
+
+        # Schedule the job with the retrieved parameters
         if selected_device == DeviceName.DG4202.value:
-            task_name = self.taskSelect.currentText()
-            params = self.getParameters()
             self.timekeeper.add_job(
-                task_name=task_name, schedule_time=schedule_time, kwargs=params
+                task_name=selected_task, schedule_time=schedule_time, kwargs=params
             )
         elif selected_device == DeviceName.EDUX1002A.value:
             # Handling for EDUX1002A
             pass
+
+        # Callback to update the UI, etc.
         self._callback()
         super().accept()
 

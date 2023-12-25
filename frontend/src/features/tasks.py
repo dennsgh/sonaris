@@ -1,25 +1,33 @@
 from features.managers import DG4202Manager
 from header import DeviceName, TaskName
+from pages import factory
 
 
-def task_on_off_dg4202(
-    dg4202_manager: DG4202Manager, channel: int, status: bool
-) -> bool:
-    dg4202_manager.get_device().output_on_off(channel=channel, status=status)
+def task_on_off_dg4202(channel: int, status: bool) -> bool:
+    factory.dg4202_manager.get_device().output_on_off(channel=channel, status=status)
     return True
 
 
 def task_set_waveform_parameters(
-    dg4202_manager: DG4202Manager, channel: int, params: dict
+    channel: int,
+    waveform_type: str,
+    amplitude: float,
+    frequency: float,
+    offset: float,
 ) -> bool:
-    dg4202_manager.get_device().set_waveform(channel=channel, params=params)
+    factory.dg4202_manager.get_device().set_waveform(
+        channel=channel,
+        waveform_type=waveform_type,
+        amplitude=amplitude,
+        frequency=frequency,
+        params=None,
+        offset=offset,
+    )
     return True
 
 
-def task_set_sweep_parameters(
-    dg4202_manager: DG4202Manager, channel: int, params: dict
-) -> bool:
-    dg4202_manager.get_device().set_sweep_parameters(
+def task_set_sweep_parameters(channel: int, params: dict) -> bool:
+    factory.dg4202_manager.get_device().set_sweep_parameters(
         channel=channel, sweep_params=params
     )
     return True
@@ -46,20 +54,54 @@ def get_tasks() -> dict:
 TASK_USER_INTERFACE_DICTIONARY = {
     DeviceName.DG4202.value: {
         TaskName.TOGGLE.value: [
-            # Example specification
-            {"type": "QComboBox", "label": "Channel", "options": ["1", "2"]},
-            {"type": "QComboBox", "label": "Switch to", "options": ["ON", "OFF"]},
+            {
+                "type": "QComboBox",
+                "label": "Channel",
+                "kwarg_label": "channel",
+                "options": ["1", "2"],
+                "data_type": "int",
+            },
+            {
+                "type": "QComboBox",
+                "label": "Switch to",
+                "options": ["ON", "OFF"],
+                "kwarg_label": "status",
+                "data_type": "str",
+            },
         ],
         TaskName.SET_WAVEFORM.value: [
-            {"type": "QComboBox", "label": "Channel", "options": ["1", "2"]},
+            {
+                "type": "QComboBox",
+                "label": "Channel",
+                "kwarg_label": "channel",
+                "options": ["1", "2"],
+                "data_type": "int",
+            },
             {
                 "type": "QComboBox",
                 "label": "Waveform Type",
+                "kwarg_label": "waveform_type",
                 "options_function": "DG4202.available_waveforms",
+                "data_type": "str",
             },
-            {"type": "QLineEdit", "label": "Frequency (Hz)"},
-            {"type": "QLineEdit", "label": "Amplitude"},
-            {"type": "QLineEdit", "label": "Offset"},
+            {
+                "type": "QLineEdit",
+                "label": "Frequency (Hz)",
+                "kwarg_label": "frequency",
+                "data_type": "float",
+            },
+            {
+                "type": "QLineEdit",
+                "label": "Amplitude",
+                "kwarg_label": "amplitude",
+                "data_type": "float",
+            },
+            {
+                "type": "QLineEdit",
+                "label": "Offset",
+                "kwarg_label": "offset",
+                "data_type": "float",
+            },
         ],
         TaskName.SET_SWEEP.value: [
             # ... UI components for sweep parameters
