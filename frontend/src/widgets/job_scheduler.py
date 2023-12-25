@@ -16,7 +16,6 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QListWidget,
     QPushButton,
-    QRadioButton,
     QVBoxLayout,
     QWidget,
 )
@@ -59,7 +58,7 @@ class SchedulerWidget(QWidget):
         jobs = self.timekeeper.get_jobs()
         for job_id, job_info in jobs.items():
             self.jobsList.addItem(
-                f"Job ID: {job_id}, Task: {job_info['task']}, Scheduled: {job_info['schedule_time']}"
+                f"Task: {job_info['task']} Scheduled: {job_info['schedule_time']} {job_info['kwargs']} Job ID: {job_id}, "
             )
 
     def open_job_config_popup(self):

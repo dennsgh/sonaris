@@ -17,6 +17,7 @@ class Timekeeper:
         logfile: Path = None,
         logger: logging.Logger = None,
         user_callback: Callable = None,
+        archive: Path = None,
     ):
         """
         Initializes the Timekeeper class, responsible for managing and scheduling jobs.
@@ -29,6 +30,7 @@ class Timekeeper:
         self.persistence_file = persistence_file
         self.worker = worker_instance
         self.jobs = self.load_jobs()
+        self.archive = archive or Path(os.getenv("DATA"), "archive.json")
         self.logfile = logfile or Path(os.getenv("LOGS"), "schedule.logs")
         self._configure_logging()
         self.reload_function_map()
@@ -167,18 +169,44 @@ class Timekeeper:
                 **job_info["kwargs"],
             )
 
-    def callback(self, job_id: str) -> None:
+    def archive_job(self, job_id: str, job_info: Dict[str, Any]) -> None:
         """
-        Removes a job from the schedule.
+        Archives a completed job.
 
         Args:
-            job_id (str): The unique identifier of the job to remove.
+            job_id (str): The ID of the completed job.
+            job_info (Dict[str, Any]): The details of the completed job.
         """
+        try:
+            if not self.archive.exists():
+                # Create the archive file if it doesn't exist
+                with open(self.archive, "w") as file:
+                    json.dump({}, file)
+
+            with open(self.archive, "r+") as file:
+                archived_jobs = json.load(file)
+                archived_jobs[job_id] = job_info
+                file.seek(0)
+                json.dump(archived_jobs, file, indent=4)
+
+            self.logger.info(f"Job {job_id} archived.")
+        except Exception as e:
+            self.logger.error(f"Failed to archive job {job_id}: {e}")
+
+    def callback(self, job_id: str) -> None:
+        """
+        Callback method that is called when a job is completed.
+        """
+        job_info = self.jobs.get(job_id, {})
+        self.archive_job(job_id, job_info)
+        self.remove_job(job_id)
+        if self.user_callback is not None:
+            self.user_callback()
+
+    def remove_job(self, job_id: str) -> None:
         self.jobs.pop(job_id)
         self.save_jobs()
         self.logger.info(f"Job {job_id} removed.")
-        if self.user_callback is not None:
-            self.user_callback()
 
     def prune(self) -> None:
         """
