@@ -1,8 +1,7 @@
-from frontend.app import run_application, signal_handler
 import signal
 import sys
 
-# Rest of the code...
+from frontend.app import run_application, signal_handler
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)

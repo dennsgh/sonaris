@@ -28,7 +28,6 @@ class SchedulerWidget(QWidget):
     def __init__(self, timekeeper: Timekeeper = None):
         super().__init__()
         # update to unpack getting ALL task names regardless of device for the widget, since it only looks at jobs.json
-        self.task_names = [func[0] for func in get_tasks()]
         self.timekeeper = timekeeper or factory.timekeeper
         self.popup = JobConfigPopup(self.timekeeper)
         self.initUI()
@@ -72,6 +71,7 @@ class JobConfigPopup(QDialog):
         self.resize(800, 640)
         self.parameterConfig = ParameterConfiguration(self)
         self.timekeeper = timekeeper
+        self.tasks = get_tasks()
         self.deviceSelect = QComboBox(self)
         self.taskSelect = QComboBox(self)
 
@@ -145,20 +145,18 @@ class JobConfigPopup(QDialog):
         # Style the QDialog
 
     def updateTimeConfigurationVisibility(self, selection):
-        # Show or hide time inputs based on the combobox selection
         isTimestamp = selection == "Timestamp"
-        for input in self.timeInputs:
-            input.setVisible(isTimestamp)
+        self.timestampWidget.setVisible(isTimestamp)
+        self.durationWidget.setVisible(not isTimestamp)
 
     def updateTaskList(self):
         # Update the task list based on the selected device
         selected_device = self.deviceSelect.currentText()
-        tasks = get_tasks().get(selected_device, {}).keys()
+        tasks = self.tasks.get(selected_device, {}).keys()
         self.taskSelect.clear()
         self.taskSelect.addItems(tasks)
         if self.taskSelect.count() > 0:
             self.taskSelect.setCurrentIndex(0)  # Set initial value to first option
-
         # Update parameter UI based on initial selections
         self.updateParameterUI()
 
@@ -173,14 +171,23 @@ class JobConfigPopup(QDialog):
         self.parameterConfig.updateUI(selected_device, selected_task)
 
     def setupTimeConfiguration(self, layout):
-        # You might need to adjust the logic here to align with the new combobox selection.
-        # For now, let's just create the inputs based on the current selection.
-        self.timeInputs = self.createDateTimeInputs(datetime.now())
-        for input in self.timeInputs:
-            layout.addWidget(input)
+        # Create widgets to hold the grid layouts
+        self.timestampWidget = QWidget(self)
+        self.durationWidget = QWidget(self)
+
+        # Set grid layouts to these widgets
+        timestampGridLayout = self.createDateTimeInputs(datetime.now())
+        durationGridLayout = self.createDurationInputs()
+        self.timestampWidget.setLayout(timestampGridLayout)
+        self.durationWidget.setLayout(durationGridLayout)
+
+        # Add these widgets to the main layout
+        layout.addWidget(self.timestampWidget)
+        layout.addWidget(self.durationWidget)
+
         self.updateTimeConfigurationVisibility(self.timeConfigComboBox.currentText())
 
-        # Connect the signal of the combobox to update the visibility of the time inputs
+        # Connect the combobox signal
         self.timeConfigComboBox.currentIndexChanged.connect(
             lambda: self.updateTimeConfigurationVisibility(
                 self.timeConfigComboBox.currentText()
@@ -188,18 +195,63 @@ class JobConfigPopup(QDialog):
         )
 
     def createDateTimeInputs(self, default_value):
-        # Create input fields for date-time or duration
-        inputs = []
-        fields = ["day", "month", "year", "hour", "minute", "second", "millisecond"]
-        for field in fields:
+        # Create a grid layout for timestamp inputs
+        gridLayout = QGridLayout()
+        self.timestampInputs = {}  # Dictionary to hold references to QLineEdit widgets
+
+        # Define the fields and their positions in the grid
+        fields = [
+            ("Year", "year", 0, 0),
+            ("Month", "month", 1, 0),
+            ("Day", "day", 2, 0),
+            ("Hour", "hour", 0, 1),
+            ("Minute", "minute", 1, 1),
+            ("Second", "second", 2, 1),
+            ("Millisecond", "millisecond", 3, 1),
+        ]
+
+        # Add the labels and line edits to the grid layout
+        for label_text, field, row, col in fields:
+            label = QLabel(f"{label_text}:")
             lineEdit = QLineEdit(self)
             lineEdit.setText(str(getattr(default_value, field, 0)))
-            inputs.append(lineEdit)
-        return inputs
+            gridLayout.addWidget(label, row, col * 2)
+            gridLayout.addWidget(lineEdit, row, col * 2 + 1)
+            self.timestampInputs[field] = lineEdit  # Store QLineEdit reference
+
+        return gridLayout
+
+    def createDurationInputs(self):
+        # Create a grid layout for duration inputs
+        gridLayout = QGridLayout()
+        self.durationInputs = {}  # Dictionary to hold references to QLineEdit widgets
+
+        # Define the fields and their positions in the grid
+        fields = [
+            ("Days", "days", 0, 0),
+            ("Hours", "hours", 0, 1),
+            ("Minutes", "minutes", 1, 1),
+            ("Seconds", "seconds", 2, 1),
+            ("Milliseconds", "milliseconds", 3, 1),
+        ]
+
+        # Add the labels and line edits to the grid layout
+        for label_text, field, row, col in fields:
+            label = QLabel(f"{label_text}:")
+            lineEdit = QLineEdit(self)
+            lineEdit.setText("00")  # Default value set to "00"
+            gridLayout.addWidget(label, row, col * 2)
+            gridLayout.addWidget(lineEdit, row, col * 2 + 1)
+            self.durationInputs[field] = lineEdit  # Store QLineEdit reference
+
+        # Add an empty label to balance the layout
+        gridLayout.addWidget(QLabel(""), 2, 0)
+
+        return gridLayout
 
     def toggleTimeInputs(self):
         # Toggle visibility of time input fields based on selected option
-        isTimestamp = self.timestampRadioButton.isChecked()
+        isTimestamp = bool(self.timeConfigComboBox.currentText().lower() == "timestamp")
         for input in self.timestampInputs:
             input.setVisible(isTimestamp)
         for input in self.durationInputs:
@@ -208,49 +260,47 @@ class JobConfigPopup(QDialog):
     def accept(self):
         # Schedule the task with either timestamp or duration
         selected_device = self.deviceSelect.currentText()
-        if self.timestampRadioButton.isChecked():
-            schedule_time = self.getDateTimeFromInputs(self.timestampInputs)
-        else:
-            duration = self.getDateTimeFromInputs(self.durationInputs, duration=True)
-            schedule_time = datetime.now() + duration
+        schedule_time = self.getDateTimeFromInputs()
 
         if selected_device == DeviceName.DG4202.value:
-            task_name = "task_set_waveform_parameters"
+            task_name = self.taskSelect.currentText()
             params = self.getParameters()
-            self.timekeeper.add_job(task_name, schedule_time, **params)
+            self.timekeeper.add_job(
+                task_name=task_name, schedule_time=schedule_time, kwargs=params
+            )
         elif selected_device == DeviceName.EDUX1002A.value:
             # Handling for EDUX1002A
             pass
 
         super().accept()
 
+    def getDateTimeFromInputs(self):
+        # Create a datetime or timedelta object from input fields
+        if self.timeConfigComboBox.currentText().lower() == "timestamp":
+            # Assuming self.timestampInputs is a dictionary of QLineEdit widgets keyed by field names
+            return datetime(
+                year=int(self.timestampInputs["year"].text()),
+                month=int(self.timestampInputs["month"].text()),
+                day=int(self.timestampInputs["day"].text()),
+                hour=int(self.timestampInputs["hour"].text()),
+                minute=int(self.timestampInputs["minute"].text()),
+                second=int(self.timestampInputs["second"].text()),
+                microsecond=int(self.timestampInputs["millisecond"].text()) * 1000,
+            )
+        else:
+            # Assuming self.durationInputs is a dictionary of QLineEdit widgets keyed by field names
+            duration = timedelta(
+                days=int(self.durationInputs["days"].text()),
+                hours=int(self.durationInputs["hours"].text()),
+                minutes=int(self.durationInputs["minutes"].text()),
+                seconds=int(self.durationInputs["seconds"].text()),
+                milliseconds=int(self.durationInputs["milliseconds"].text()),
+            )
+            return datetime.now() + duration
+
     def getParameters(self):
         # to implement
         return {}
-
-    def getDateTimeFromInputs(self, inputs, duration=False):
-        # Create a datetime or timedelta object from input fields
-        values = [int(input.text()) for input in inputs]
-        if duration:
-            return timedelta(
-                days=values[0],
-                months=values[1],
-                years=values[2],
-                hours=values[3],
-                minutes=values[4],
-                seconds=values[5],
-                milliseconds=values[6],
-            )
-        else:
-            return datetime(
-                day=values[0],
-                month=values[1],
-                year=values[2],
-                hour=values[3],
-                minute=values[4],
-                second=values[5],
-                microsecond=values[6] * 1000,
-            )
 
 
 # Rest of the application code remains the same
