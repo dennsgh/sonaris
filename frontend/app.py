@@ -54,6 +54,8 @@ def init_objects(args_dict: dict):
         for task_name, func_pointer in task_dict.items():
             factory.worker.register_task(func_pointer, task_name)
 
+    factory.worker.start_worker()
+
 
 class MainWindow(ModularMainWindow):
     def __init__(self, args_dict: dict) -> None:
@@ -100,6 +102,11 @@ class MainWindow(ModularMainWindow):
         page_widget: Optional[QWidget] = self.sidebar_dict.get(page_name)
         if page_widget:
             self.sidebar_content.setCurrentWidget(page_widget)
+
+    def closeEvent(self, event):
+        print("main x exit button was clicked")
+        factory.worker.stop_worker()
+        super().closeEvent(event)
 
 
 def create_app(args_dict: dict) -> (QApplication, QMainWindow):

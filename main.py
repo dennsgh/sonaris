@@ -1,5 +1,4 @@
 import signal
-import sys
 
 from frontend.app import run_application, signal_handler
 

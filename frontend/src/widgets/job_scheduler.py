@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Callable
 
 from features.tasks import get_tasks
 from header import DeviceName
@@ -29,7 +30,7 @@ class SchedulerWidget(QWidget):
         super().__init__()
         # update to unpack getting ALL task names regardless of device for the widget, since it only looks at jobs.json
         self.timekeeper = timekeeper or factory.timekeeper
-        self.popup = JobConfigPopup(self.timekeeper)
+        self.popup = JobConfigPopup(self.timekeeper, self.popup_callback)
         self.initUI()
 
     def initUI(self):
@@ -64,14 +65,18 @@ class SchedulerWidget(QWidget):
         # Open a popup window to configure a new job
         self.popup.exec()
 
+    def popup_callback(self):
+        self.update_jobs_list()
+
 
 class JobConfigPopup(QDialog):
-    def __init__(self, timekeeper: Timekeeper):
+    def __init__(self, timekeeper: Timekeeper, _callback: Callable):
         super().__init__()
         self.resize(800, 640)
         self.parameterConfig = ParameterConfiguration(self)
         self.timekeeper = timekeeper
         self.tasks = get_tasks()
+        self._callback = _callback
         self.deviceSelect = QComboBox(self)
         self.taskSelect = QComboBox(self)
 
@@ -271,7 +276,7 @@ class JobConfigPopup(QDialog):
         elif selected_device == DeviceName.EDUX1002A.value:
             # Handling for EDUX1002A
             pass
-
+        self._callback()
         super().accept()
 
     def getDateTimeFromInputs(self):

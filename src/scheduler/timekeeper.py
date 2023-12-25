@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict
 
-from scheduler.worker import Worker
+from seledri.worker import Worker
 
 
 class Timekeeper:
@@ -70,7 +70,9 @@ class Timekeeper:
         with open(self.persistence_file, "w") as file:
             json.dump(self.jobs, file, indent=4)
 
-    def compute_hash(self, task_name: str, *args, **kwargs) -> str:
+    def compute_hash(
+        self, task_name: str, schedule_time: datetime, *args, **kwargs
+    ) -> str:
         """
         Computes a hash for the given task and arguments.
 
@@ -82,7 +84,11 @@ class Timekeeper:
         Returns:
             str: A hash string representing the task and arguments.
         """
-        return hashlib.sha256(str(f"{task_name}{args}{kwargs}").encode()).hexdigest()
+        args = args or ""
+        kwargs = kwargs or ""
+        return hashlib.sha256(
+            str(f"{task_name}{schedule_time.isoformat()}{args}{kwargs}").encode()
+        ).hexdigest()
 
     def add_job(self, task_name: str, schedule_time: datetime, **kwargs) -> str:
         """
@@ -96,7 +102,7 @@ class Timekeeper:
         Returns:
             str: The ID of the scheduled job.
         """
-        job_id = self.compute_hash(task_name, kwargs)
+        job_id = self.compute_hash(task_name, schedule_time, kwargs)
         self.jobs[job_id] = {
             "task": task_name,
             "created": datetime.now().isoformat(),
@@ -149,7 +155,11 @@ class Timekeeper:
                 schedule_time = now + timedelta(seconds=10)
                 self.logger.info(f"Rescheduling job {job_id} to run at {schedule_time}")
             self.worker.__schedule_task__(
-                job_info["task"], schedule_time, **job_info["kwargs"]
+                job_info["task"],
+                schedule_time,
+                job_id,
+                self.remove_job,
+                **job_info["kwargs"],
             )
 
     def remove_job(self, job_id: str) -> None:
