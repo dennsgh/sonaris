@@ -40,8 +40,14 @@ class Timekeeper:
     def set_callback(self, user_callback: Callable) -> None:
         self.user_callback = user_callback
 
-    def remove_job(self, job_id: str) -> None:
+    def cancel_job(self, job_id: str) -> None:
+        """Removes job from worker and erases entry
+
+        Args:
+            job_id (str): _description_
+        """
         self.worker.remove_scheduled_task(job_id)
+        self.remove_job(job_id)
 
     def clear_archive(self):
         # Clear the JSON file
@@ -215,6 +221,11 @@ class Timekeeper:
             self.user_callback()
 
     def remove_job(self, job_id: str) -> None:
+        """Removes from internal entry, not on worker node!
+
+        Args:
+            job_id (str): _description_
+        """
         self.jobs.pop(job_id)
         self.save_jobs()
         self.logger.info(f"Job {job_id} removed.")

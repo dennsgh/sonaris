@@ -1,19 +1,30 @@
 import json
 import os
 from pathlib import Path
+from typing import Callable
 
 from PyQt6.QtWidgets import QLabel, QLineEdit, QPushButton, QVBoxLayout
-from widgets.templates import ModuleWidget
+from widgets.templates import BasePage
 
 
-class SettingsPage(ModuleWidget):
-    def __init__(self, parent=None, args_dict: dict = None):
-        super().__init__(parent=parent)
+class SettingsPage(BasePage):
+    def __init__(
+        self,
+        parent=None,
+        args_dict: dict = None,
+        root_callback: Callable = None,
+    ):
+        super().__init__(
+            parent=parent, args_dict=args_dict, root_callback=root_callback
+        )
         self.args_dict = args_dict
         self.settings_file = Path(os.getenv("DATA"), "settings.json")
         self.load_settings()
         self.initUI()
         self.setLayout(self.main_layout)
+
+    def update(self):
+        pass
 
     def initUI(self):
         self.main_layout = QVBoxLayout()

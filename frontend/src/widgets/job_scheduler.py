@@ -31,11 +31,12 @@ from scheduler.timekeeper import Timekeeper
 
 
 class SchedulerWidget(QWidget):
-    def __init__(self, timekeeper: Timekeeper = None):
+    def __init__(self, timekeeper: Timekeeper = None, root_callback: Callable = None):
         super().__init__()
         self.timekeeper = timekeeper or factory.timekeeper
         self.popup = JobConfigPopup(self.timekeeper, self.popup_callback)
         self.timekeeper.set_callback(self.popup_callback)
+        self.root_callback = root_callback
         self.initUI()
 
     def initUI(self):
@@ -140,7 +141,7 @@ class SchedulerWidget(QWidget):
             selected_row = selected_items[0].row()
             job_id = self.jobsTable.item(selected_row, 0).text()
             try:
-                self.timekeeper.remove_job(job_id)
+                self.timekeeper.cancel_job(job_id)
                 self.update_jobs_table()
             except Exception as e:
                 print(f"Error removing job {job_id}: {e}")
@@ -170,6 +171,9 @@ class SchedulerWidget(QWidget):
     def popup_callback(self):
         self.update_jobs_table()
         self.update_finished_jobs_list()
+        if self.root_callback is not None:
+            # Relay tick to main app.
+            self.root_callback()
 
     def show_archive_entry(self, item):
         # Get the text of the double-clicked item

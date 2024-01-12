@@ -64,6 +64,7 @@ class MainWindow(ModularMainWindow):
         menu_bar = MainMenuBar(self)
         self.setWindowTitle("MRI Labs")
         self.setMenuBar(menu_bar)
+        self.last_page = ""
         # ---------------------------------------------------------------------- #
         # ---------------------------SIDEBAR SETUP------------------------------ #
         self.sidebar = Sidebar(self)
@@ -71,16 +72,21 @@ class MainWindow(ModularMainWindow):
         self.sidebar.sizePolicy()
         self.sidebar_dict: Dict[str, QWidget] = {
             "General": general.GeneralPage(
-                factory.dg4202_manager,
-                factory.edux1002a_manager,
-                self,
+                dg4202_manager=factory.dg4202_manager,
+                edux1002a_manager=factory.edux1002a_manager,
+                root_callback=self.root_callback,
+                parent=self,
                 args_dict=args_dict,
             ),
-            "Scheduler": scheduler.SchedulerPage(args_dict, self, factory.timekeeper),
-            # "Experiment": experiment.ExperimentPage(
-            #     factory.dg4202_manager, self, args_dict
-            # ),
-            "Settings": settings.SettingsPage(self, args_dict),
+            "Scheduler": scheduler.SchedulerPage(
+                timekeeper=factory.timekeeper,
+                parent=self,
+                args_dict=args_dict,
+                root_callback=self.root_callback,
+            ),
+            "Settings": settings.SettingsPage(
+                parent=self, args_dict=args_dict, root_callback=self.root_callback
+            ),
         }
         self.sidebar.addItems(self.sidebar_dict.keys())  # Add strings to sidebar items
         self.sidebar_content = QStackedWidget(self)
@@ -100,9 +106,17 @@ class MainWindow(ModularMainWindow):
         self.sidebar.pageSelected.connect(self.loadPage)
 
     def loadPage(self, page_name: str) -> None:
-        page_widget: Optional[QWidget] = self.sidebar_dict.get(page_name)
-        if page_widget:
+        page_widget: QWidget = self.sidebar_dict.get(page_name)
+        if page_widget and self.last_page != page_name:
             self.sidebar_content.setCurrentWidget(page_widget)
+            print(f"[Sidebar] Switch to {page_name} - {page_widget}")
+            page_widget.update()
+            self.last_page = page_name
+
+    def root_callback(self):
+        """tells pages the pages to call update method."""
+        for _, page_obj in self.sidebar_dict.items():
+            page_obj.update()
 
     def closeEvent(self, event):
         print("main x exit button was clicked")

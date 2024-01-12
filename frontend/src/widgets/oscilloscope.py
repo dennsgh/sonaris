@@ -12,20 +12,20 @@ from PyQt6.QtWidgets import (
     QLabel,
     QPushButton,
     QVBoxLayout,
+    QWidget,
 )
-from widgets.templates import ModuleWidget
 
 from device.edux1002a import EDUX1002ADetector
 
 
-class OscilloscopeWidget(ModuleWidget):
+class OscilloscopeWidget(QWidget):
     def __init__(
         self, edux1002a_manager: EDUX1002AManager, parent=None, tick: int = 100
     ):
         super().__init__(parent)
         self.edux1002a_manager = edux1002a_manager
         # self.edux1002a_manager.edux1002a_device.interface.debug = True
-        self.tick = tick
+        self.tick = int(tick)
         self.active_channel = 1
         self.x_input = {1: None, 2: None}
         self.y_input = {1: None, 2: None}
@@ -242,12 +242,14 @@ class OscilloscopeWidget(ModuleWidget):
     def freeze(self):
         """Stop updating the waveform"""
         self.freeze_button.setText("START")
+        self.freeze_button.setStyleSheet("")  # Set text color to default
         self.timer.stop()
 
     def unfreeze(self):
         """Resume updating the waveform"""
         self.timer.start(self.tick)
         self.freeze_button.setText("STOP")
+        self.freeze_button.setStyleSheet("color: red;")
 
     def toggle_freeze(self):
         if self.timer.isActive():

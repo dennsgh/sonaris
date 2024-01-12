@@ -1,4 +1,5 @@
-from abc import abstractmethod
+from abc import ABC, abstractmethod
+from typing import Callable
 
 from PyQt6.QtWidgets import (
     QGridLayout,
@@ -9,6 +10,22 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+
+class BasePage(QWidget):
+    def __init__(
+        self,
+        parent=None,
+        args_dict: dict = None,
+        root_callback: Callable = None,
+    ):
+        super().__init__(parent)
+        self.args_dict: dict = args_dict
+        self.root_callback: Callable = root_callback
+
+    @abstractmethod
+    def update(self):
+        pass
 
 
 class ModuleWidget(QWidget):

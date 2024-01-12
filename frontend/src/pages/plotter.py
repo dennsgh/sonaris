@@ -72,6 +72,9 @@ def plot_sweep(
     start_frequency: Optional[float] = None,
     stop_frequency: Optional[float] = None,
     duration: Optional[float] = None,
+    rtime: Optional[float] = None,
+    htime_start: Optional[float] = None,
+    htime_stop: Optional[float] = None,
     params: dict = None,
 ) -> QChart:
     """
@@ -81,6 +84,9 @@ def plot_sweep(
         start_frequency (float): Starting frequency of the sweep.
         stop_frequency (float): Stopping frequency of the sweep.
         duration (float): Duration of the sweep.
+        rtime (float, optional): Return Time for the sweep.
+        htime_start (float, optional): Hold Time Start for the sweep.
+        htime_stop (float, optional): Hold Time End for the sweep.
         params (dict, optional): Optional dictionary containing sweep parameters. If provided, the individual parameters
                                  will be extracted from this dictionary. Defaults to None.
 
@@ -89,12 +95,42 @@ def plot_sweep(
     """
     if params is not None:
         # If parameters are provided as a dictionary, extract the values
-        start_frequency = float(params["FSTART"])
-        stop_frequency = float(params["FSTOP"])
-        duration = float(params["TIME"])
+        start_frequency = float(params.get("FSTART", start_frequency))
+        stop_frequency = float(params.get("FSTOP", stop_frequency))
+        duration = float(params.get("TIME", duration))
+        rtime = float(params.get("RTIME", rtime))
+        htime_start = float(params.get("HTIME_START", htime_start))
+        htime_stop = float(params.get("HTIME_STOP", htime_stop))
 
-    # Generate time values based on duration with 1000 points
-    t_values = np.linspace(0, duration, 1000)
+    # Calculate the number of samples based on the provided duration
+    num_samples = int(1000 * duration)  # Convert to samples
+
+    # Ensure that the number of samples is non-negative
+    if num_samples < 0:
+        num_samples = 0
+
+    # Generate time values based on the number of samples
+    t_values = np.linspace(0, duration, num_samples)
+
+    # Apply Hold Time
+    if htime_start is not None and htime_stop is not None:
+        num_samples_start = int(1000 * htime_start)
+        num_samples_hold = int(1000 * (htime_stop - htime_start))
+        num_samples_end = int(1000 * (duration - htime_stop))
+
+        # Ensure non-negative number of samples
+        num_samples_start = max(num_samples_start, 0)
+        num_samples_hold = max(num_samples_hold, 0)
+        num_samples_end = max(num_samples_end, 0)
+
+        # Generate time values for hold time
+        t_values = np.concatenate(
+            [
+                np.linspace(0, htime_start, num_samples_start),
+                np.linspace(htime_start, htime_stop, num_samples_hold),
+                np.linspace(htime_stop, duration, num_samples_end),
+            ]
+        )
 
     # Generate a linearly increasing frequency array
     frequency_values = np.linspace(start_frequency, stop_frequency, len(t_values))
