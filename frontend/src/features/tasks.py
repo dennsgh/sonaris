@@ -33,6 +33,11 @@ def task_set_sweep_parameters(channel: int, params: dict) -> bool:
     return True
 
 
+def task_auto_edux1002a(kwarg_value):
+    # for testing
+    return
+
+
 def get_tasks() -> dict:
     """Returns the dict of { device : { task-name : func_pointer , ..} ..}
 
@@ -42,18 +47,21 @@ def get_tasks() -> dict:
 
     task_dictionary = {
         DeviceName.DG4202.value: {
-            TaskName.TOGGLE.value: task_on_off_dg4202,
-            TaskName.SET_WAVEFORM.value: task_set_waveform_parameters,
-            TaskName.SET_SWEEP.value: task_set_sweep_parameters,
+            TaskName.DG4202_TOGGLE.value: task_on_off_dg4202,
+            TaskName.DG4202_SET_WAVEFORM.value: task_set_waveform_parameters,
+            TaskName.DG4202_SET_SWEEP.value: task_set_sweep_parameters,
         },
-        DeviceName.EDUX1002A.value: {},
+        DeviceName.EDUX1002A.value: {
+            TaskName.EDUX1002A_AUTO.value: task_auto_edux1002a
+        },
     }
     return task_dictionary
 
 
+# These refer to header.py for uniformity!
 TASK_USER_INTERFACE_DICTIONARY = {
     DeviceName.DG4202.value: {
-        TaskName.TOGGLE.value: [
+        TaskName.DG4202_TOGGLE.value: [
             {
                 "type": "QComboBox",
                 "label": "Channel",
@@ -69,7 +77,7 @@ TASK_USER_INTERFACE_DICTIONARY = {
                 "data_type": "str",
             },
         ],
-        TaskName.SET_WAVEFORM.value: [
+        TaskName.DG4202_SET_WAVEFORM.value: [
             {
                 "type": "QComboBox",
                 "label": "Channel",
@@ -81,7 +89,7 @@ TASK_USER_INTERFACE_DICTIONARY = {
                 "type": "QComboBox",
                 "label": "Waveform Type",
                 "kwarg_label": "waveform_type",
-                "options_function": "DG4202.available_waveforms",
+                "options_function": "DG4202.available_waveforms",  # refers to driver DG4202 class and its method to get the list of waveforms.
                 "data_type": "str",
             },
             {
@@ -103,12 +111,18 @@ TASK_USER_INTERFACE_DICTIONARY = {
                 "data_type": "float",
             },
         ],
-        TaskName.SET_SWEEP.value: [
-            # ... UI components for sweep parameters
-        ],
+        TaskName.DG4202_SET_SWEEP.value: [{}],
     },
     DeviceName.EDUX1002A.value: {
-        # ... UI specifications for EDUX1002A tasks
+        TaskName.EDUX1002A_AUTO.value: [
+            {
+                "type": "QComboBox",
+                "label": "kwarg_value",
+                "kwarg_label": "kwarg_value",
+                "options": ["Press", "NoPress"],
+                "data_type": "str",
+            },
+        ],
     },
 }
 

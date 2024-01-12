@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Callable, Dict
 
-from seledri.worker import Worker
+from scheduler.worker import Worker
 
 
 class Timekeeper:
@@ -39,6 +39,17 @@ class Timekeeper:
 
     def set_callback(self, user_callback: Callable) -> None:
         self.user_callback = user_callback
+
+    def remove_job(self, job_id: str) -> None:
+        self.worker.remove_scheduled_task(job_id)
+
+    def clear_archive(self):
+        # Clear the JSON file
+        try:
+            with self.archive.open("w") as file:
+                json.dump({}, file)  # Write an empty dictionary to the file
+        except Exception as e:
+            self.logger.error(f"Error clearing finished jobs: {e}")
 
     def _configure_logging(self) -> None:
         """

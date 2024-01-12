@@ -10,6 +10,7 @@ class DeviceName(Enum):
 
 
 class TaskName(Enum):
-    TOGGLE = "Toggle Output"
-    SET_WAVEFORM = "Set Waveform Parameters"
-    SET_SWEEP = "Set Sweep Parameters"
+    DG4202_TOGGLE = "Toggle Output"
+    DG4202_SET_WAVEFORM = "Set Waveform Parameters"
+    DG4202_SET_SWEEP = "Set Sweep Parameters"
+    EDUX1002A_AUTO = "Press Auto"

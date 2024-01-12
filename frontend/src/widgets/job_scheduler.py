@@ -1,9 +1,11 @@
+import json
 from datetime import datetime, timedelta
 from typing import Callable
 
 from features.tasks import TASK_USER_INTERFACE_DICTIONARY, get_tasks
 from header import DeviceName
 from pages import factory
+from PyQt6 import QtCore
 from PyQt6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -12,10 +14,14 @@ from PyQt6.QtWidgets import (
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
+    QHeaderView,
     QLabel,
     QLineEdit,
     QListWidget,
     QPushButton,
+    QSplitter,
+    QTableWidget,
+    QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
@@ -27,53 +33,148 @@ from scheduler.timekeeper import Timekeeper
 class SchedulerWidget(QWidget):
     def __init__(self, timekeeper: Timekeeper = None):
         super().__init__()
-        # update to unpack getting ALL task names regardless of device for the widget, since it only looks at jobs.json
         self.timekeeper = timekeeper or factory.timekeeper
         self.popup = JobConfigPopup(self.timekeeper, self.popup_callback)
         self.timekeeper.set_callback(self.popup_callback)
         self.initUI()
 
     def initUI(self):
-        layout = QVBoxLayout(self)
-        # DateTime picker for scheduling tasks
-        self.dateTimeEdit = QDateTimeEdit(self)
-        self.dateTimeEdit.setDateTime(datetime.now())
-        layout.addWidget(self.dateTimeEdit)
+        # Create a horizontal splitter
+        splitter = QSplitter(QtCore.Qt.Orientation.Horizontal, self)
 
-        # Label and list for displaying current jobs
-        self.jobsLabel = QLabel("Current Jobs:", self)
-        layout.addWidget(self.jobsLabel)
-        self.jobsList = QListWidget(self)
-        self.update_jobs_list()
-        layout.addWidget(self.jobsList)
+        # Left side widget and layout
+        leftWidget = QWidget()
+        leftLayout = QVBoxLayout(leftWidget)
+
+        # DateTime picker for scheduling tasks
+        self.dateTimeEdit = QDateTimeEdit(leftWidget)
+        self.dateTimeEdit.setDateTime(datetime.now())
+        leftLayout.addWidget(self.dateTimeEdit)
+
+        # Label and table for displaying current jobs
+        self.jobsLabel = QLabel("Current Jobs:", leftWidget)
+        leftLayout.addWidget(self.jobsLabel)
+
+        # Create the table with 4 columns
+        self.jobsTable = QTableWidget(0, 4, leftWidget)
+        self.jobsTable.setHorizontalHeaderLabels(
+            ["Job ID", "Task Name", "Scheduled Time", "Parameters"]
+        )
+        self.jobsTable.horizontalHeader().setSectionResizeMode(
+            QHeaderView.ResizeMode.Stretch
+        )
+        self.update_jobs_table()
+        leftLayout.addWidget(self.jobsTable)
 
         # Button to configure a job
-        self.configureJobButton = QPushButton("Schedule Task", self)
+        self.configureJobButton = QPushButton("Schedule Task", leftWidget)
         self.configureJobButton.clicked.connect(self.open_job_config_popup)
-        layout.addWidget(self.configureJobButton)
+        leftLayout.addWidget(self.configureJobButton)
 
-    def update_jobs_list(self):
-        # Update the list of jobs
-        self.jobsList.clear()
+        self.removeJobButton = QPushButton("Remove Selected Job", leftWidget)
+        self.removeJobButton.clicked.connect(self.remove_selected_job)
+        leftLayout.addWidget(self.removeJobButton)
+
+        # Right side widget and layout
+        rightWidget = QWidget()
+        rightLayout = QVBoxLayout(rightWidget)
+
+        # Label and list for displaying finished jobs
+        self.finishedJobsLabel = QLabel("Finished Jobs:", rightWidget)
+        rightLayout.addWidget(self.finishedJobsLabel)
+
+        self.finishedJobsList = QListWidget(rightWidget)
+        self.update_finished_jobs_list()
+        rightLayout.addWidget(self.finishedJobsList)
+
+        self.clearFinishedJobsButton = QPushButton("Clear Archive", rightWidget)
+        self.clearFinishedJobsButton.clicked.connect(self.clear_finished_jobs)
+        rightLayout.addWidget(self.clearFinishedJobsButton)
+        # Add the left and right widgets to the splitter
+        splitter.addWidget(leftWidget)
+        splitter.addWidget(rightWidget)
+
+        # Optionally set initial sizes of the splitter sections
+        splitter.setSizes([300, 200])  # Adjust these values as needed
+
+        # Set the main layout to include the splitter
+        mainLayout = QVBoxLayout(self)
+        mainLayout.addWidget(splitter)
+
+    def update_jobs_table(self):
+        self.jobsTable.setRowCount(0)
         jobs = self.timekeeper.get_jobs()
         for job_id, job_info in jobs.items():
-            self.jobsList.addItem(
-                f"Task: {job_info['task']} Scheduled: {job_info['schedule_time']} {job_info['kwargs']} Job ID: {job_id}, "
+            row_position = self.jobsTable.rowCount()
+            self.jobsTable.insertRow(row_position)
+
+            # Create QTableWidgetItem for each entry and set it to non-editable
+            job_id_item = QTableWidgetItem(job_id)
+            job_id_item.setFlags(
+                job_id_item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable
             )
+            self.jobsTable.setItem(row_position, 0, job_id_item)
+
+            task_name_item = QTableWidgetItem(job_info["task"])
+            task_name_item.setFlags(
+                task_name_item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable
+            )
+            self.jobsTable.setItem(row_position, 1, task_name_item)
+
+            schedule_time_item = QTableWidgetItem(job_info["schedule_time"])
+            schedule_time_item.setFlags(
+                schedule_time_item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable
+            )
+            self.jobsTable.setItem(row_position, 2, schedule_time_item)
+
+            parameters_item = QTableWidgetItem(str(job_info["kwargs"]))
+            parameters_item.setFlags(
+                parameters_item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable
+            )
+            self.jobsTable.setItem(row_position, 3, parameters_item)
+
+    def remove_selected_job(self):
+        selected_items = self.jobsTable.selectedItems()
+        if selected_items:
+            selected_row = selected_items[0].row()
+            job_id = self.jobsTable.item(selected_row, 0).text()
+            try:
+                self.timekeeper.remove_job(job_id)
+                self.update_jobs_table()
+            except Exception as e:
+                print(f"Error removing job {job_id}: {e}")
+        else:
+            print("No job selected")
+
+    def update_finished_jobs_list(self):
+        self.finishedJobsList.clear()
+        try:
+            with self.timekeeper.archive.open("r") as file:
+                finished_jobs = json.load(file)
+            for job_id, job_info in finished_jobs.items():
+                self.finishedJobsList.addItem(f"{job_info['task']}   \t - [{job_id}]")
+        except FileNotFoundError:
+            pass
+
+    def clear_finished_jobs(self):
+        # Clear the JSON file
+        try:
+            self.timekeeper.clear_archive()
+        except Exception as e:
+            print(f"Error clearing finished jobs: {e}")
 
     def open_job_config_popup(self):
-        # Open a popup window to configure a new job
         self.popup.exec()
 
     def popup_callback(self):
-        # callback for the task scheduler objects to update the list.
-        self.update_jobs_list()
+        self.update_jobs_table()
+        self.update_finished_jobs_list()
 
 
 class JobConfigPopup(QDialog):
     def __init__(self, timekeeper: Timekeeper, _callback: Callable):
         super().__init__()
-        self.resize(800, 640)
+        self.resize(800, 320)
         self.parameterConfig = ParameterConfiguration(self)
         self.timekeeper = timekeeper
         self.tasks = get_tasks()
@@ -99,7 +200,7 @@ class JobConfigPopup(QDialog):
 
         # Configuration group at the top
         configurationGroup = QGroupBox("Configuration")
-        configurationLayout = QHBoxLayout(configurationGroup)
+        configurationLayout = QVBoxLayout(configurationGroup)
         configurationLayout.addWidget(QLabel("Select Device:"))
         configurationLayout.addWidget(self.deviceSelect)
         configurationLayout.addWidget(QLabel("Select Task:"))
@@ -110,7 +211,7 @@ class JobConfigPopup(QDialog):
         timeConfigGroup = QGroupBox()
         timeConfigLayout = QHBoxLayout(timeConfigGroup)
         self.timeConfigComboBox = QComboBox(self)
-        self.timeConfigComboBox.addItems(["Timestamp", "Duration"])
+        self.timeConfigComboBox.addItems(["Timedelta", "Timestamp"])
         timeConfigLayout.addWidget(self.timeConfigComboBox)
         self.setupTimeConfiguration(timeConfigLayout)  # Add time configuration widgets
         gridLayout.addWidget(
@@ -132,7 +233,8 @@ class JobConfigPopup(QDialog):
         gridLayout.setColumnStretch(
             1, 2
         )  # This sets the stretch factor for the second column
-
+        gridLayout.setRowStretch(0, 1)  # Smaller first row (20%)
+        gridLayout.setRowStretch(1, 4)  # Larger second row (80%)
         # Third row for OK and Cancel buttons
         buttonsLayout = QHBoxLayout()
         self.okButton = QPushButton("OK", self)
@@ -147,8 +249,6 @@ class JobConfigPopup(QDialog):
 
         # Set the layout for the QDialog
         self.setLayout(gridLayout)
-
-        # Style the QDialog
 
     def updateTimeConfigurationVisibility(self, selection):
         isTimestamp = selection == "Timestamp"
@@ -178,8 +278,8 @@ class JobConfigPopup(QDialog):
 
     def setupTimeConfiguration(self, layout):
         # Create widgets to hold the grid layouts
-        self.timestampWidget = QWidget(self)
         self.durationWidget = QWidget(self)
+        self.timestampWidget = QWidget(self)
 
         # Set grid layouts to these widgets
         timestampGridLayout = self.createDateTimeInputs(datetime.now())
@@ -281,8 +381,8 @@ class JobConfigPopup(QDialog):
                 task_name=selected_task, schedule_time=schedule_time, kwargs=params
             )
         elif selected_device == DeviceName.EDUX1002A.value:
-            # Handling for EDUX1002A
-            pass
+            # Handling for EDUX1002A, TODO: Implement!
+            return
 
         # Callback to update the UI, etc.
         self._callback()

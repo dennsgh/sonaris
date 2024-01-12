@@ -1,14 +1,17 @@
 import argparse
+import os
 import sys
+from pathlib import Path
 from typing import Dict, Optional
 
 import pyvisa
+import qdarktheme
 from features.managers import DG4202Manager, EDUX1002AManager, StateManager
 from features.tasks import get_tasks
 from header import OSCILLOSCOPE_BUFFER_SIZE, DeviceName, TaskName
 from pages import experiment, factory, general, scheduler, settings
+from PyQt6.QtGui import QGuiApplication, QIcon
 from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget, QWidget
-from qt_material import apply_stylesheet
 from widgets.menu import MainMenuBar
 from widgets.sidebar import Sidebar
 from widgets.templates import ModularMainWindow
@@ -107,6 +110,15 @@ class MainWindow(ModularMainWindow):
         factory.worker.stop_worker()
         super().closeEvent(event)
 
+    def showEvent(self, event):
+        primaryScreen = QGuiApplication.primaryScreen()
+        screenGeometry = primaryScreen.availableGeometry()
+        centerPoint = screenGeometry.center()
+        frameGeometry = self.frameGeometry()
+        frameGeometry.moveCenter(centerPoint)
+        self.move(frameGeometry.topLeft())
+        super().showEvent(event)
+
 
 def create_app(args_dict: dict) -> (QApplication, QMainWindow):
     init_objects(args_dict=args_dict)
@@ -114,21 +126,19 @@ def create_app(args_dict: dict) -> (QApplication, QMainWindow):
     app = QApplication([])
     window = MainWindow(args_dict)
 
-    extra = {
-        # Button colors
-        "danger": "#dc3546",
-        "warning": "#ffc106",
-        "success": "#17a2b7",
-        # Font
-        "font_family": "Roboto",
-    }
-    import qdarktheme
-
     qdarktheme.setup_theme()
     # apply_stylesheet(app, "dark_blue.xml", invert_secondary=True, extra=extra)
 
+    # Set custom app icon
+    app_icon = QIcon(
+        Path(os.getenv("ASSETS"), "favicon.ico").as_posix()
+    )  # Replace with the path to your icon file
+    app.setWindowIcon(app_icon)
+    window.setWindowIcon(app_icon)
+
     window.setWindowTitle("mrilabs")
-    window.show()
+    window.resize(1024, 800)
+
     return app, window
 
 
@@ -167,6 +177,7 @@ def run_application():
     args_dict = vars(args)
     print(args_dict)
     app, window = create_app(args_dict)
+    window.show()
     app.exec()
 
 

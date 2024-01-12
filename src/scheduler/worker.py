@@ -84,12 +84,30 @@ class Worker:
             **kwargs (Any): Keyword arguments to pass to the task.
         """
         self.scheduler.add_job(
-            self.execute_task,
-            "date",
+            func=self.execute_task,
+            trigger="date",
             run_date=run_time,
             args=(task_name, job_id, _callback, args, kwargs),
+            id=job_id,
         )
         self.logger.debug(f"Scheduled task '{task_name}' to run at {run_time}")
+
+    def remove_scheduled_task(self, job_id: str) -> None:
+        """
+        Removes a scheduled task from the scheduler.
+
+        Args:
+            job_id (str): The unique identifier of the job to be removed.
+        """
+        try:
+            self.scheduler.remove_job(job_id)
+            self.logger.info(
+                f"Successfully removed scheduled task with job_id: {job_id}."
+            )
+        except Exception as e:
+            self.logger.error(
+                f"Error removing scheduled task with job_id: {job_id}. Error: {e}"
+            )
 
     def start_worker(self) -> None:
         """
