@@ -47,7 +47,7 @@ class Timekeeper:
         # Clear the JSON file
         try:
             with self.archive.open("w") as file:
-                json.dump({}, file)  # Write an empty dictionary to the file
+                json.dump({}, file)
         except Exception as e:
             self.logger.error(f"Error clearing finished jobs: {e}")
 

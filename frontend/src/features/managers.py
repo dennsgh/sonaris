@@ -11,8 +11,6 @@ from device.data import DataBuffer
 from device.dg4202 import DG4202, DG4202DataSource, DG4202Detector, DG4202Mock
 from device.edux1002a import EDUX1002A, EDUX1002ADataSource, EDUX1002ADetector
 
-DEFAULT_DICT = {"dg_last_alive": None, "edux_last_alive": None}
-
 
 class StateManager:
     def __init__(self, json_file: Path = None):

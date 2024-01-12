@@ -1,13 +1,8 @@
 from features.managers import DG4202Manager, EDUX1002AManager
+from header import TICK_INTERVAL
 from PyQt6.QtWidgets import QLabel, QTabWidget, QVBoxLayout, QWidget
 from widgets.dg_default import DG4202DefaultWidget
 from widgets.oscilloscope import OscilloscopeWidget
-
-NOT_FOUND_STRING = "Device not found!"
-TIMER_INTERVAL = 1000.0  # in ms
-TIMER_INTERVAL_S = TIMER_INTERVAL / 1000.0  # in ms
-
-DEFAULT_TAB_STYLE = {"height": "30px", "padding": "2px"}
 
 
 class GeneralPage(QWidget):
@@ -41,7 +36,9 @@ class GeneralPage(QWidget):
             f"Connection Status: {self.all_parameters.get('connected', 'Not connected')}"
         )
         self.main_layout.addWidget(self.connection_status_label)
-        self.oscilloscope = OscilloscopeWidget(self.edux1002a_manager)
+        self.oscilloscope = OscilloscopeWidget(
+            self.edux1002a_manager, tick=TICK_INTERVAL
+        )
         self.main_layout.addWidget(self.oscilloscope)
         self.status_label = QLabel("")
         self.main_layout.addWidget(self.status_label)

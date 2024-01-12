@@ -7,9 +7,8 @@ from typing import Dict, Optional
 import pyvisa
 import qdarktheme
 from features.managers import DG4202Manager, EDUX1002AManager, StateManager
-from features.tasks import get_tasks
-from header import OSCILLOSCOPE_BUFFER_SIZE, DeviceName, TaskName
-from pages import experiment, factory, general, scheduler, settings
+from header import OSCILLOSCOPE_BUFFER_SIZE, get_tasks
+from pages import factory, general, scheduler, settings
 from PyQt6.QtGui import QGuiApplication, QIcon
 from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget, QWidget
 from widgets.menu import MainMenuBar
@@ -78,9 +77,9 @@ class MainWindow(ModularMainWindow):
                 args_dict=args_dict,
             ),
             "Scheduler": scheduler.SchedulerPage(args_dict, self, factory.timekeeper),
-            "Experiment": experiment.ExperimentPage(
-                factory.dg4202_manager, self, args_dict
-            ),
+            # "Experiment": experiment.ExperimentPage(
+            #     factory.dg4202_manager, self, args_dict
+            # ),
             "Settings": settings.SettingsPage(self, args_dict),
         }
         self.sidebar.addItems(self.sidebar_dict.keys())  # Add strings to sidebar items

@@ -2,8 +2,7 @@ import json
 from datetime import datetime, timedelta
 from typing import Callable
 
-from features.tasks import TASK_USER_INTERFACE_DICTIONARY, get_tasks
-from header import DeviceName
+from header import DEVICE_LIST, TASK_USER_INTERFACE_DICTIONARY, get_tasks
 from pages import factory
 from PyQt6 import QtCore
 from PyQt6.QtWidgets import (
@@ -18,6 +17,7 @@ from PyQt6.QtWidgets import (
     QLabel,
     QLineEdit,
     QListWidget,
+    QMessageBox,
     QPushButton,
     QSplitter,
     QTableWidget,
@@ -84,6 +84,7 @@ class SchedulerWidget(QWidget):
         rightLayout.addWidget(self.finishedJobsLabel)
 
         self.finishedJobsList = QListWidget(rightWidget)
+        self.finishedJobsList.itemDoubleClicked.connect(self.show_archive_entry)
         self.update_finished_jobs_list()
         rightLayout.addWidget(self.finishedJobsList)
 
@@ -157,9 +158,9 @@ class SchedulerWidget(QWidget):
             pass
 
     def clear_finished_jobs(self):
-        # Clear the JSON file
         try:
             self.timekeeper.clear_archive()
+            self.update_finished_jobs_list()
         except Exception as e:
             print(f"Error clearing finished jobs: {e}")
 
@@ -169,6 +170,30 @@ class SchedulerWidget(QWidget):
     def popup_callback(self):
         self.update_jobs_table()
         self.update_finished_jobs_list()
+
+    def show_archive_entry(self, item):
+        # Get the text of the double-clicked item
+        item_text = item.text()
+
+        # Extract the job ID from the text (assuming it's enclosed in square brackets [])
+        job_id_start = item_text.find("[")
+        job_id_end = item_text.find("]")
+
+        if job_id_start != -1 and job_id_end != -1:
+            job_id = item_text[job_id_start + 1 : job_id_end]
+
+            # Retrieve the job details from the archive using the job_id
+            try:
+                with self.timekeeper.archive.open("r") as file:
+                    finished_jobs = json.load(file)
+                job_details = finished_jobs.get(job_id)
+                if job_details:
+                    # Display the job details using a QMessageBox or any other method
+                    QMessageBox.information(
+                        self, "Job Details", f"Job ID: {job_id}\nDetails: {job_details}"
+                    )
+            except FileNotFoundError:
+                pass
 
 
 class JobConfigPopup(QDialog):
@@ -183,7 +208,7 @@ class JobConfigPopup(QDialog):
         self.taskSelect = QComboBox(self)
 
         # Add items to device select combo box and set initial selection
-        self.deviceSelect.addItems(factory.DEVICE_LIST)
+        self.deviceSelect.addItems(DEVICE_LIST)
         if self.deviceSelect.count() > 0:
             self.deviceSelect.setCurrentIndex(0)  # Set initial value to first option
             self.updateTaskList()  # Update task list based on selected device

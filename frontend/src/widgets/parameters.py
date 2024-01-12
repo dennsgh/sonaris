@@ -1,8 +1,10 @@
-from features.tasks import TASK_USER_INTERFACE_DICTIONARY
+from header import TASK_USER_INTERFACE_DICTIONARY
 from PyQt6.QtWidgets import QComboBox, QLabel, QLineEdit, QVBoxLayout, QWidget
 
 from device.dg4202 import DG4202  # will be dynamically used later, do not remove
-from device.edux1002a import EDUX1002A  # will be dynamically used later, do not remove, awaiting implementation
+from device.edux1002a import (  # will be dynamically used later, do not remove, awaiting implementation
+    EDUX1002A,
+)
 
 
 class ParameterConfiguration(QWidget):
