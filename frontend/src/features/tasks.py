@@ -26,7 +26,23 @@ def task_set_waveform_parameters(
     return True
 
 
-def task_set_sweep_parameters(channel: int, params: dict) -> bool:
+def task_set_sweep_parameters(
+    channel: int,
+    fstart: float,
+    fstop: float,
+    time: float,
+    rtime: float = 0,
+    htime_start: float = 0,
+    htime_stop: float = 0,
+) -> bool:
+    params = {
+        "FSTART": fstart,
+        "FSTOP": fstop,
+        "TIME": time,
+        "RTIME": rtime,
+        "HTIME_START": htime_start,
+        "HTIME_STOP": htime_stop,
+    }
     factory.dg4202_manager.get_device().set_sweep_parameters(
         channel=channel, sweep_params=params
     )
@@ -111,7 +127,51 @@ TASK_USER_INTERFACE_DICTIONARY = {
                 "data_type": "float",
             },
         ],
-        TaskName.DG4202_SET_SWEEP.value: [{}],
+        TaskName.DG4202_SET_SWEEP.value: [
+            {
+                "type": "QComboBox",
+                "label": "Channel",
+                "kwarg_label": "channel",
+                "options": ["1", "2"],
+                "data_type": "int",
+            },
+            {
+                "type": "QLineEdit",
+                "label": "Freq Start",
+                "kwarg_label": "fstart",
+                "data_type": "float",
+            },
+            {
+                "type": "QLineEdit",
+                "label": "Freq Stop",
+                "kwarg_label": "fstop",
+                "data_type": "float",
+            },
+            {
+                "type": "QLineEdit",
+                "label": "Time",
+                "kwarg_label": "time",
+                "data_type": "float",
+            },
+            {
+                "type": "QLineEdit",
+                "label": "Return",
+                "kwarg_label": "rtime",
+                "data_type": "float",
+            },
+            {
+                "type": "QLineEdit",
+                "label": "Start Hold",
+                "kwarg_label": "htime_start",
+                "data_type": "float",
+            },
+            {
+                "type": "QLineEdit",
+                "label": "Stop Hold",
+                "kwarg_label": "htime_stop",
+                "data_type": "float",
+            },
+        ],
     },
     DeviceName.EDUX1002A.value: {
         TaskName.EDUX1002A_AUTO.value: [
