@@ -1,4 +1,3 @@
-from features.managers import DG4202Manager
 from header import DeviceName, TaskName
 from pages import factory
 
@@ -50,8 +49,9 @@ def task_set_sweep_parameters(
 
 
 def task_auto_edux1002a(kwarg_value):
-    # for testing
-    return
+    # for testing, kwarg_value means nothing
+    factory.edux1002a_manager.get_device().autoscale()
+    return True
 
 
 def get_tasks() -> dict:

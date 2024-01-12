@@ -368,25 +368,24 @@ class JobConfigPopup(QDialog):
         selected_device = self.deviceSelect.currentText()
         selected_task = self.taskSelect.currentText()
         schedule_time = self.getDateTimeFromInputs()
+        try:
+            task_spec = TASK_USER_INTERFACE_DICTIONARY[selected_device][selected_task]
 
-        # Retrieve task specifications for the selected task
-        task_spec = TASK_USER_INTERFACE_DICTIONARY[selected_device][selected_task]
+            # Get parameters from ParameterConfiguration
+            params = self.parameterConfig.get_parameters(task_spec)
 
-        # Get parameters from ParameterConfiguration
-        params = self.parameterConfig.get_parameters(task_spec)
-
-        # Schedule the job with the retrieved parameters
-        if selected_device == DeviceName.DG4202.value:
             self.timekeeper.add_job(
                 task_name=selected_task, schedule_time=schedule_time, kwargs=params
             )
-        elif selected_device == DeviceName.EDUX1002A.value:
-            # Handling for EDUX1002A, TODO: Implement!
-            return
-
-        # Callback to update the UI, etc.
-        self._callback()
-        super().accept()
+            # Callback to update the UI, etc.
+            self._callback()
+            super().accept()
+        except Exception as e:
+            print(
+                {
+                    f"Error during commissioning job on {selected_device} - {selected_task} : {e}"
+                }
+            )
 
     def getDateTimeFromInputs(self):
         # Create a datetime or timedelta object from input fields
