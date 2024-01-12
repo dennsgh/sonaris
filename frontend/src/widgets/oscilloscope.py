@@ -25,7 +25,7 @@ class OscilloscopeWidget(ModuleWidget):
         super().__init__(parent)
         self.edux1002a_manager = edux1002a_manager
         # self.edux1002a_manager.edux1002a_device.interface.debug = True
-        self.tick = tick  # ms, for now, you can adjust this
+        self.tick = tick
         self.active_channel = 1
         self.x_input = {1: None, 2: None}
         self.y_input = {1: None, 2: None}

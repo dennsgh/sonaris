@@ -66,6 +66,7 @@ class SchedulerWidget(QWidget):
         self.popup.exec()
 
     def popup_callback(self):
+        # callback for the task scheduler objects to update the list.
         self.update_jobs_list()
 
 

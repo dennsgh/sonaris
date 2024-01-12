@@ -1,6 +1,7 @@
 from enum import Enum
 
 GRAPH_RGB = (255, 255, 255)
+OSCILLOSCOPE_BUFFER_SIZE = 512
 
 
 class DeviceName(Enum):

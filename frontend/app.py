@@ -5,6 +5,7 @@ from typing import Dict, Optional
 import pyvisa
 from features.managers import DG4202Manager, EDUX1002AManager, StateManager
 from features.tasks import get_tasks
+from header import OSCILLOSCOPE_BUFFER_SIZE, DeviceName, TaskName
 from pages import experiment, factory, general, scheduler, settings
 from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget, QWidget
 from qt_material import apply_stylesheet
@@ -14,8 +15,6 @@ from widgets.templates import ModularMainWindow
 
 from scheduler.timekeeper import Timekeeper
 from scheduler.worker import Worker
-
-OSCILLOSCOPE_BUFFER_SIZE = 512
 
 
 def signal_handler(signal, frame):
@@ -114,7 +113,20 @@ def create_app(args_dict: dict) -> (QApplication, QMainWindow):
 
     app = QApplication([])
     window = MainWindow(args_dict)
-    apply_stylesheet(app, theme="dark_lightgreen.xml")
+
+    extra = {
+        # Button colors
+        "danger": "#dc3546",
+        "warning": "#ffc106",
+        "success": "#17a2b7",
+        # Font
+        "font_family": "Roboto",
+    }
+    import qdarktheme
+
+    qdarktheme.setup_theme()
+    # apply_stylesheet(app, "dark_blue.xml", invert_secondary=True, extra=extra)
+
     window.setWindowTitle("mrilabs")
     window.show()
     return app, window

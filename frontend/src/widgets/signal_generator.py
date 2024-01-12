@@ -1,15 +1,17 @@
 import sys
+
 import numpy as np
 import pyqtgraph as pg
-from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
 from PyQt6.QtCore import QTimer
-from device.edux1002a import EDUX1002A, EDUX1002ADetector, EDUX1002AEthernet, EDUX1002AUSB
+from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
+
+from device.edux1002a import EDUX1002A, EDUX1002ADetector
+
 # Assuming your EDUX1002A class and Interface class are already defined...
 
 
 class OscilloscopeApp(QMainWindow):
-
-    def __init__(self, oscilloscope, channel=1):
+    def __init__(self, oscilloscope: EDUX1002A, channel=1):
         super().__init__()
 
         self.oscilloscope = oscilloscope
