@@ -14,6 +14,7 @@ fi
 
 export DATA="$WORKINGDIR/data"
 export LOGS="$WORKINGDIR/logs"
+export ASSETS="$WORKINGDIR/frontend/assets"
 
 export FRONTEND_SRC="$WORKINGDIR/frontend/src"
 export SRC="$WORKINGDIR/src"
@@ -33,6 +34,7 @@ else
 fi
 # Now use the chosen dotenv command
 $dotenv_command -f "$WORKINGDIR/.env" set WORKINGDIR "$WORKINGDIR"
+$dotenv_command -f "$WORKINGDIR/.env" set ASSETS "$ASSETS"
 $dotenv_command -f "$WORKINGDIR/.env" set CONFIG "$CONFIG"
 $dotenv_command -f "$WORKINGDIR/.env" set LOGS "$LOGS"
 $dotenv_command -f "$WORKINGDIR/.env" set DATA "$DATA"
