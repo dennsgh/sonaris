@@ -1,5 +1,7 @@
 {
-  "python.testing.pytestArgs": ["mrilabs/testing"],
+  "python.testing.pytestArgs": [
+    "mrilabs/testing"
+  ],
   "python.testing.unittestEnabled": false,
   "python.testing.pytestEnabled": true,
   "python.formatting.provider": "yapf",
@@ -26,6 +28,7 @@
     "WORKINGDIR": "${workspaceRoot}",
     "CONFIG": "${workspaceRoot}/etc",
     "DATA": "${workspaceRoot}/data",
+    "ASSETS": "${workspaceRoot}/frontend/assets",
     "LOGS": "${workspaceRoot}/logs",
     "PYTHONPATH": "${env:PYTHONPATH}:${workspaceRoot}/src:${workspaceRoot}/frontend/src"
   },
@@ -33,6 +36,7 @@
     "WORKINGDIR": "${workspaceRoot}",
     "CONFIG": "${workspaceRoot}\\etc",
     "DATA": "${workspaceRoot}\\data",
+    "ASSETS": "${workspaceRoot}\\frontend\\assets",
     "LOGS": "${workspaceRoot}\\logs",
     "PYTHONPATH": "${env:PYTHONPATH};${workspaceRoot}\\src;${workspaceRoot}\\frontend\\src"
   },
@@ -40,6 +44,7 @@
     "WORKINGDIR": "${workspaceRoot}",
     "CONFIG": "${workspaceRoot}/etc",
     "DATA": "${workspaceRoot}/data",
+    "ASSETS": "${workspaceRoot}/frontend/assets",
     "LOGS": "${workspaceRoot}/logs",
     "PYTHONPATH": "${env:PYTHONPATH}:${workspaceRoot}/src:${workspaceRoot}/frontend/src"
   }
