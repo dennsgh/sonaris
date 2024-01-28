@@ -123,14 +123,14 @@ class MainWindow(ModularMainWindow):
         factory.worker.stop_worker()
         super().closeEvent(event)
 
-    # def showEvent(self, event):
-    #     primaryScreen = QGuiApplication.primaryScreen()
-    #     screenGeometry = primaryScreen.availableGeometry()
-    #     centerPoint = screenGeometry.center()
-    #     frameGeometry = self.frameGeometry()
-    #     frameGeometry.moveCenter(centerPoint)
-    #     self.move(frameGeometry.topLeft())
-    #     super().showEvent(event)
+    def showEvent(self, event):
+        primaryScreen = QGuiApplication.primaryScreen()
+        screenGeometry = primaryScreen.availableGeometry()
+        centerPoint = screenGeometry.center()
+        frameGeometry = self.frameGeometry()
+        frameGeometry.moveCenter(centerPoint)
+        self.move(frameGeometry.topLeft())
+        super().showEvent(event)
 
 
 def create_app(args_dict: dict) -> (QApplication, MainWindow):
