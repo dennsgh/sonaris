@@ -123,17 +123,17 @@ class MainWindow(ModularMainWindow):
         factory.worker.stop_worker()
         super().closeEvent(event)
 
-    def showEvent(self, event):
-        primaryScreen = QGuiApplication.primaryScreen()
-        screenGeometry = primaryScreen.availableGeometry()
-        centerPoint = screenGeometry.center()
-        frameGeometry = self.frameGeometry()
-        frameGeometry.moveCenter(centerPoint)
-        self.move(frameGeometry.topLeft())
-        super().showEvent(event)
+    # def showEvent(self, event):
+    #     primaryScreen = QGuiApplication.primaryScreen()
+    #     screenGeometry = primaryScreen.availableGeometry()
+    #     centerPoint = screenGeometry.center()
+    #     frameGeometry = self.frameGeometry()
+    #     frameGeometry.moveCenter(centerPoint)
+    #     self.move(frameGeometry.topLeft())
+    #     super().showEvent(event)
 
 
-def create_app(args_dict: dict) -> (QApplication, QMainWindow):
+def create_app(args_dict: dict) -> (QApplication, MainWindow):
     init_objects(args_dict=args_dict)
 
     app = QApplication([])
@@ -150,8 +150,8 @@ def create_app(args_dict: dict) -> (QApplication, QMainWindow):
     window.setWindowIcon(app_icon)
 
     window.setWindowTitle("mrilabs")
-    window.resize(1024, 800)
-
+    window.resize(800, 480)
+    print("Window size after resize:", window.size())
     return app, window
 
 

@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "mrilabs"
+version = "0.1.0"
+description = "Lab equipment automation"
+authors = ["dennis <gohdennis@tum.de>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10,<3.11"
+PyQt6 = "^6.6.1"
+PyQt6-Charts = "^6.6.0"
+numpy = "^1.26.3"
+pyqtdarktheme = "^2.1.0"
+PyVISA = "^1.14.1"
+PyVISA-py = "^0.7.1"
+yapf = "^0.40.2"
+apscheduler = "^3.10.4"
+pyqtgraph = "^0.13.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
