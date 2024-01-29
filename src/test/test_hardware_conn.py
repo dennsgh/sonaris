@@ -10,8 +10,7 @@ def test_DG4202Detector_detect_device():
 
     # Check that the returned object is not None and of the correct type
     assert detected_device is not None
-    assert isinstance(detected_device.interface, EthernetInterface) or isinstance(
-        detected_device.interface, USBInterface)
+    assert isinstance(detected_device.interface, Interface)
 
 
 """

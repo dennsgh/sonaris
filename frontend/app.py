@@ -14,15 +14,18 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget, QWidget
 from widgets.menu import MainMenuBar
 from widgets.sidebar import Sidebar
 from widgets.templates import ModularMainWindow
+import signal
 
 from scheduler.timekeeper import Timekeeper
 from scheduler.worker import Worker
 
 
-def signal_handler(signal, frame):
+def signal_handler(signum, frame):
     print("Exit signal detected.")
-    # Perform additional error handling actions here if needed
-    sys.exit(0)
+
+    # Invoke the default SIGINT handler to exit the application
+    signal.signal(signum, signal.SIG_DFL)
+    os.kill(os.getpid(), signum)
 
 
 def init_objects(args_dict: dict):
