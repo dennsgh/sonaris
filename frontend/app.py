@@ -8,7 +8,7 @@ import pyvisa
 import qdarktheme
 from features.managers import DG4202Manager, EDUX1002AManager, StateManager
 from header import OSCILLOSCOPE_BUFFER_SIZE, get_tasks
-from pages import factory, general, scheduler, settings
+from pages import factory, general, scheduler, settings, monitor
 from PyQt6.QtGui import QGuiApplication, QIcon
 from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget, QWidget
 from widgets.menu import MainMenuBar
@@ -90,6 +90,16 @@ class MainWindow(ModularMainWindow):
             "Settings": settings.SettingsPage(
                 parent=self, args_dict=args_dict, root_callback=self.root_callback
             ),
+            "Monitor": monitor.MonitorPage(
+                device_managers = {
+                    "DG4202" : factory.dg4202_manager,
+                    "EDUX1002A": factory.edux1002a_manager
+                },
+                parent=self,
+                args_dict=args_dict,
+                monitor_logs=factory.MONITOR_FILE,
+                root_callback=self.root_callback
+            )
         }
         self.sidebar.addItems(self.sidebar_dict.keys())  # Add strings to sidebar items
         self.sidebar_content = QStackedWidget(self)
@@ -153,7 +163,7 @@ def create_app(args_dict: dict) -> (QApplication, MainWindow):
     window.setWindowIcon(app_icon)
 
     window.setWindowTitle("mrilabs")
-    window.resize(800, 480)
+    window.resize(640, 400)
     print("Window size after resize:", window.size())
     return app, window
 

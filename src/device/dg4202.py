@@ -5,7 +5,7 @@ import pyvisa
 
 from device.data import DataSource
 from device.interface import EthernetInterface, Interface, USBInterface
-
+from unittest.mock import MagicMock
 
 class DG4202:
     @staticmethod
@@ -472,6 +472,10 @@ class DG4202MockInterface(Interface):
             "SOURce2:MOD:DEV": "0",
             "SOURce2:MOD:RATE": "0",
         }
+        mock_resource = MagicMock()
+        # Setup any default attributes or return values if necessary
+        mock_resource.timeout = None  # Set default value for timeout attribute
+        super().__init__(mock_resource)
 
     def write(self, command: str) -> None:
         if command in [

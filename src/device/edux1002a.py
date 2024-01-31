@@ -6,7 +6,7 @@ import pyvisa
 
 from device.data import DataSource
 from device.interface import EthernetInterface, Interface, USBInterface
-
+from unittest.mock import MagicMock
 
 class EDUX1002A:
     """Keysight EDUX1002A hardware driver/wrapper."""
@@ -142,6 +142,19 @@ class EDUX1002A:
         ]
 
         return preamble
+    
+    def is_connection_alive(self) -> bool:
+        """
+        Checks if the connection to the EDUX1002A device is alive.
+
+        Returns:
+            bool: True if the connection is alive, False otherwise.
+        """
+        try:
+            response = self.interface.read("*IDN?")
+            return bool(response)  # True if there is a response, False otherwise
+        except:
+            return False
 
     def display_preamble_details(self, preamble):
         """Displays the preamble details in a human-readable format."""
@@ -330,3 +343,101 @@ class EDUX1002ADataSource(DataSource):
             return voltage
         except:
             return []
+
+class EDUX1002AMockInterface(Interface):
+    def __init__(self):
+        # Create a MagicMock instance to simulate a pyvisa.Resource
+        mock_resource = MagicMock()
+        mock_resource.timeout = None  # Set default value for timeout attribute
+
+        super().__init__(mock_resource)
+        self.state = {
+            ":WAVeform:DATA?": "Mocked Waveform Data",
+            ":SYSTem:ERRor?": "No error",
+        }
+
+    def write(self, command: str) -> None:
+        # Use the mocked write method
+        self.inst.write(command)
+
+    def read(self, command: str) -> str:
+        # Simulate reading a response from the device
+        return self.state.get(command, self.inst.query(command))
+
+
+class EDUX1002AMock(EDUX1002A):
+    def __init__(self, timeout=20000):
+        self.killed = False 
+        super().__init__(EDUX1002AMockInterface(),timeout)
+
+    def simulate_kill(self, kill: bool):
+        self.killed = kill
+
+    def is_connection_alive(self) -> bool:
+        return not self.killed
+
+    def __getattribute__(self, name):
+        blocked_methods = [
+            "initialize",
+            "autoscale",
+            "set_waveform_source",
+            "set_waveform_format",
+            "get_waveform_data_raw",
+            "set_trigger_mode",
+            "digitize",
+            "query_oscilloscope",
+            "check_instrument_status",
+            "set_acquisition_mode",
+            "is_real_time_mode",
+            "get_waveform_preamble",
+            "get_waveform_data",
+            "get_waveform",
+            "set_timeout",
+            "set_acquisition_type",
+            "set_waveform_return_type",
+            "get_acquisition_type",
+            "set_acquisition_count",
+        ]
+        if object.__getattribute__(self, "killed") and name in blocked_methods:
+            raise Exception("Device is disconnected!")
+
+        return object.__getattribute__(self, name)
+
+    # Implementing the mocked methods
+    def initialize(self):
+        if self.killed:
+            raise Exception("Device is disconnected!")
+        print("Oscilloscope reset to default settings.")
+
+    def autoscale(self):
+        if self.killed:
+            raise Exception("Device is disconnected!")
+        print("Autoscale completed.")
+
+    def set_waveform_source(self, channel: int = 1):
+        if self.killed:
+            raise Exception("Device is disconnected!")
+        print(f"Waveform source set to Channel {channel}.")
+
+    def set_waveform_format(self, format: str):
+        if self.killed:
+            raise Exception("Device is disconnected!")
+        print(f"Waveform format set to {format}.")
+
+    def get_waveform_data_raw(self):
+        if self.killed:
+            raise Exception("Device is disconnected!")
+        return "Mocked Waveform Data"
+
+    def get_waveform_data(self, channel: int = 1):
+        if self.killed:
+            raise Exception("Device is disconnected!")
+        # Return simulated waveform data
+        return np.random.rand(100)  # Simulating 100 data points
+
+    def get_waveform(self, channel: int = 1):
+        if self.killed:
+            raise Exception("Device is disconnected!")
+        time = np.arange(100)  # Simulating time data
+        voltage = self.get_waveform_data(channel)
+        return time, voltage
