@@ -55,11 +55,12 @@ class DeviceMonitorWidget(QWidget):
             with open(self.monitor_logs, 'r') as file:
                 event_log = json.load(file)
             for event in event_log:
-                self.event_log_list.addItem(event["description"])
+                self.event_log_list.addItem(f"[{event['timestamp']}] - {event['description']}")
 
     def log_event(self, description):
+        timestamp = datetime.now().isoformat()
         event = {
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": timestamp,
             "description": description
         }
         if not self.monitor_logs.exists():
@@ -71,7 +72,7 @@ class DeviceMonitorWidget(QWidget):
                 event_log.append(event)
                 file.seek(0)
                 json.dump(event_log, file, indent=4)
-        self.event_log_list.addItem(description)
+        self.event_log_list.addItem(f"[{timestamp}] - {description}")
 
     def update_device_statuses(self):
         for device_name, manager in self.device_managers.items():
