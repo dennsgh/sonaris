@@ -5,6 +5,7 @@ import os
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pyvisa
 
@@ -79,6 +80,8 @@ class DeviceManagerBase(abc.ABC):
         self.device: Device = None
         self.args_dict = args_dict
         self.rm = resource_manager
+        self._mock_device = MagicMock()
+        self._mock_device.killed = False
 
     def call_device_method(self, method_name: str, *args, **kwargs):
         """
@@ -111,7 +114,7 @@ class DeviceManagerBase(abc.ABC):
     def is_device_alive(self) -> bool:
         try:
             if self.args_dict["hardware_mock"]:
-                return ~self.device.killed
+                return not self.device.killed
             idn = self.device.interface.read("*IDN?")
             return self.IDN_STRING in idn
         except Exception as e:
@@ -184,6 +187,7 @@ class DG4202Manager(DeviceManagerBase):
                     state["dg_last_alive"] = time.time()
             self.state_manager.write_state(state)
         self.data_source = DG4202DataSource(self.device)
+
         return self.device
 
     def get_data(self) -> dict:

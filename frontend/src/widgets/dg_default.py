@@ -74,10 +74,6 @@ class DG4202DefaultWidget(QWidget):
         self.create_widgets()
         self.main_layout = QVBoxLayout()
         self.check_connection()
-        self.connection_status_label = QLabel(
-            f"Connection Status: {self.all_parameters['connected']}"
-        )  # Placeholder for connection status
-        self.main_layout.addWidget(self.connection_status_label)
         self.status_label = QLabel("")
         self.main_layout.addWidget(self.status_label)
         for _, widgets in self.controls.items():

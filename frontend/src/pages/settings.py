@@ -1,17 +1,18 @@
-import json
 import os
 from pathlib import Path
 from typing import Callable, Dict
 
 from features.managers import DeviceManagerBase
-from PyQt6.QtWidgets import QLabel, QLineEdit, QPushButton, QVBoxLayout
+from PyQt6.QtWidgets import QVBoxLayout
+from widgets.mock_settings import MockHardwareWidget
+from widgets.settings_state import SettingsStateWidget
 from widgets.templates import BasePage
 
 
 class SettingsPage(BasePage):
     def __init__(
         self,
-        device_managers: Dict[str, DeviceManagerBase],
+        device_managers: Dict[str, DeviceManagerBase] = None,
         parent=None,
         args_dict: dict = None,
         root_callback: Callable = None,
@@ -19,61 +20,22 @@ class SettingsPage(BasePage):
         super().__init__(
             parent=parent, args_dict=args_dict, root_callback=root_callback
         )
-        self.args_dict = args_dict
-        self.settings_file = Path(os.getenv("DATA"), "settings.json")
-        self.load_settings()
+        self.device_managers = device_managers
+        self.settings_widget = SettingsStateWidget(
+            settings_file=Path(os.getenv("DATA"), "settings.json")
+        )
+        self.mock_hardware_widget = None  # Will be initialized if hardware_mock is True
         self.initUI()
         self.setLayout(self.main_layout)
 
-    def update(self):
-        pass
-
     def initUI(self):
         self.main_layout = QVBoxLayout()
+        self.main_layout.addWidget(self.settings_widget)
 
-        # Add a label and edit for a sample setting
-        self.setting_label = QLabel("Sample Setting:")
-        self.setting_edit = QLineEdit(self)
-        self.setting_edit.setText(self.settings.get("sample_setting", ""))
+        # Add the mock hardware settings widget if hardware_mock is True
+        if self.args_dict and self.args_dict.get("hardware_mock"):
+            self.mock_hardware_widget = MockHardwareWidget(self.device_managers)
+            self.main_layout.addWidget(self.mock_hardware_widget)
 
-        # Create buttons
-        self.apply_button = QPushButton("Apply")
-        self.apply_button.clicked.connect(self.apply_settings)
-
-        self.reset_button = QPushButton("Reset")
-        self.reset_button.clicked.connect(self.reset_settings)
-
-        # Arrange widgets in the layout
-        self.main_layout.addWidget(self.setting_label)
-        self.main_layout.addWidget(self.setting_edit)
-        self.main_layout.addWidget(self.apply_button)
-        self.main_layout.addWidget(self.reset_button)
-
-    def load_settings(self):
-        try:
-            with open(self.settings_file, "r") as f:
-                self.settings = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            self.settings = {}
-
-    def save_settings(self):
-        with open(self.settings_file, "w") as f:
-            json.dump(self.settings, f, indent=4)
-
-    def apply_settings(self):
-        # Save the current state of the settings
-        self.settings["sample_setting"] = self.setting_edit.text()
-        self.save_settings()
-
-    def reset_settings(self):
-        # Reset the settings to their saved state
-        self.load_settings()
-        self.setting_edit.setText(self.settings.get("sample_setting", ""))
-
-
-# To use this dialog:
-# if __name__ == "__main__":
-#     import sys
-#     app = QApplication(sys.argv)
-#     settings_page = SettingsPage()
-#     settings_page.exec()
+    def update(self):
+        pass  # Implement any update logic here if needed

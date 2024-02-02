@@ -7,6 +7,8 @@ from features.tasks import (
     task_set_waveform_parameters,
 )
 
+VERSION_STRING = "v0.1.0"
+
 GRAPH_RGB = (255, 255, 255)
 OSCILLOSCOPE_BUFFER_SIZE = 512
 

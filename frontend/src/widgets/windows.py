@@ -1,7 +1,6 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton
 import pages.factory as factory
-
-from PyQt6.QtWidgets import QMessageBox
+from header import VERSION_STRING
+from PyQt6.QtWidgets import QLabel, QMessageBox, QPushButton, QVBoxLayout, QWidget
 
 
 class VersionWindow(QMessageBox):
@@ -9,7 +8,7 @@ class VersionWindow(QMessageBox):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Version Information")
-        self.setText("MRILabs\nVersion: 1.0.0")  # Example version text
+        self.setText(f"MRILabs\nVersion: {VERSION_STRING}")  # Example version text
         self.setIcon(QMessageBox.Icon.Information)
 
 
@@ -39,8 +38,12 @@ class DeviceWindow(QWidget):
 
     def refresh_device_status(self):
         # Refresh the status of the devices
-        dg4202_status = "Connected" if factory.dg4202_manager.get_device() else "Disconnected"
+        dg4202_status = (
+            "Connected" if factory.dg4202_manager.get_device() else "Disconnected"
+        )
         self.dg4202_status_label.setText(f"DG4202 Status: {dg4202_status}")
 
-        edux1002a_status = "Connected" if factory.edux1002a_manager.get_device() else "Disconnected"
+        edux1002a_status = (
+            "Connected" if factory.edux1002a_manager.get_device() else "Disconnected"
+        )
         self.edux1002a_status_label.setText(f"EDUX1002A Status: {edux1002a_status}")
