@@ -1,18 +1,20 @@
 import re
 from typing import Optional
+from unittest.mock import MagicMock
 
 import numpy as np
 import pyvisa
 
 from device.data import DataSource
+from device.device import Device
 from device.interface import EthernetInterface, Interface, USBInterface
-from unittest.mock import MagicMock
 
-class EDUX1002A:
+
+class EDUX1002A(Device):
     """Keysight EDUX1002A hardware driver/wrapper."""
 
     def __init__(self, interface: Interface, timeout=20000):
-        self.interface = interface
+        super().__init__(interface)
         self.interface.inst.timeout = timeout
 
     def initialize(self):
@@ -142,7 +144,7 @@ class EDUX1002A:
         ]
 
         return preamble
-    
+
     def is_connection_alive(self) -> bool:
         """
         Checks if the connection to the EDUX1002A device is alive.
@@ -344,6 +346,7 @@ class EDUX1002ADataSource(DataSource):
         except:
             return []
 
+
 class EDUX1002AMockInterface(Interface):
     def __init__(self):
         # Create a MagicMock instance to simulate a pyvisa.Resource
@@ -367,8 +370,8 @@ class EDUX1002AMockInterface(Interface):
 
 class EDUX1002AMock(EDUX1002A):
     def __init__(self, timeout=20000):
-        self.killed = False 
-        super().__init__(EDUX1002AMockInterface(),timeout)
+        self.killed = False
+        super().__init__(EDUX1002AMockInterface(), timeout)
 
     def simulate_kill(self, kill: bool):
         self.killed = kill

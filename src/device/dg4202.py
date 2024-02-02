@@ -1,13 +1,15 @@
 import re
 from typing import List, Optional
+from unittest.mock import MagicMock
 
 import pyvisa
 
 from device.data import DataSource
+from device.device import Device
 from device.interface import EthernetInterface, Interface, USBInterface
-from unittest.mock import MagicMock
 
-class DG4202:
+
+class DG4202(Device):
     @staticmethod
     def available_waveforms() -> List[str]:
         """
@@ -29,7 +31,7 @@ class DG4202:
         return ["off", "sweep", "burst", "mod"]
 
     def __init__(self, interface: Interface):
-        self.interface = interface
+        super().__init__(interface)
 
     def set_waveform(
         self,
@@ -536,6 +538,8 @@ class DG4202DataSource(DataSource):
                             "FSTOP": 0,
                             "TIME": 0,
                             "RTIME": 0,
+                            "HTIME_START": 0,
+                            "HTIME_STOP": 0,
                         },
                         "burst": "",
                     },

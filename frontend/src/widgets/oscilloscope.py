@@ -24,7 +24,7 @@ class OscilloscopeWidget(QWidget):
     ):
         super().__init__(parent)
         self.edux1002a_manager = edux1002a_manager
-        # self.edux1002a_manager.edux1002a_device.interface.debug = True
+        # self.edux1002a_manager.device.interface.debug = True
         self.tick = int(tick)
         self.active_channel = 1
         self.x_input = {1: None, 2: None}
@@ -38,14 +38,17 @@ class OscilloscopeWidget(QWidget):
 
     def configuration(self):
         """configuration"""
-        self.edux1002a_manager.edux1002a_device.set_acquisition_type("AVERage")
-        self.edux1002a_manager.edux1002a_device.set_waveform_return_type("AVERage")
-        self.edux1002a_manager.edux1002a_device.set_waveform_format("ASCII")
-        self.edux1002a_manager.edux1002a_device.set_acquisition_complete(100)
-        self.edux1002a_manager.edux1002a_device.set_acquisition_count(8)
-        self.edux1002a_manager.edux1002a_device.set_waveform_points(
-            self.edux1002a_manager.buffer_size
-        )
+        if self.edux1002a_manager.get_device():
+            self.edux1002a_manager.device.set_acquisition_type("AVERage")
+            self.edux1002a_manager.device.set_waveform_return_type("AVERage")
+            self.edux1002a_manager.device.set_waveform_format("ASCII")
+            self.edux1002a_manager.device.set_acquisition_complete(100)
+            self.edux1002a_manager.device.set_acquisition_count(8)
+            self.edux1002a_manager.device.set_waveform_points(
+                self.edux1002a_manager.buffer_size
+            )
+        else:
+            print("EDUX1002A not connnected, device configuration not started.")
 
     def update_spinbox_values(self, xRange, yRange, x_input, y_input):
         x_input.blockSignals(True)
@@ -205,7 +208,9 @@ class OscilloscopeWidget(QWidget):
         button_layout.addWidget(self.freeze_button)
 
         self.auto_button = QPushButton("AUTO")
-        self.auto_button.clicked.connect(self.edux1002a_manager.autoscale)
+        self.auto_button.clicked.connect(
+            lambda: self.edux1002a_manager.device.autoscale
+        )
         button_layout.addWidget(self.auto_button)
         self.setLayout(layout)
 
@@ -224,7 +229,7 @@ class OscilloscopeWidget(QWidget):
 
     def set_active_channel(self, channel: int):
         self.active_channel = channel
-        self.edux1002a_manager.edux1002a_device.setup_waveform_readout(channel)
+        self.edux1002a_manager.device.setup_waveform_readout(channel)
         self.update_channel_button_styles()
 
     def update_data(self):

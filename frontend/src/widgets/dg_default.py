@@ -13,10 +13,10 @@ from PyQt6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
+    QSizePolicy,
+    QSpacerItem,
     QTabWidget,
     QVBoxLayout,
-    QSpacerItem,
-    QSizePolicy,
     QWidget,
 )
 
@@ -90,10 +90,9 @@ class DG4202DefaultWidget(QWidget):
             self.main_layout.addWidget(tab_widget)
             tab_widget.currentChanged.connect(self.on_tab_changed)
             self.main_layout.addWidget(widgets["main_controls"])
-            
+
         self.main_layout.setSpacing(5)  # Reduced spacing
         self.main_layout.setContentsMargins(5, 5, 5, 5)  # Reduced margins
-
 
         self.setLayout(self.main_layout)
 
@@ -249,11 +248,13 @@ class DG4202DefaultWidget(QWidget):
         left_main_layout.addLayout(left_columns_layout)  # Add the columns layout
 
         # Set parameters button
-        left_main_layout.addWidget(set_parameters_button)  # Adding the button below the columns
+        left_main_layout.addWidget(
+            set_parameters_button
+        )  # Adding the button below the columns
 
         # Wrap the main left layout in a widget
         left_widget = QWidget()
-        left_widget.setLayout(left_main_layout) 
+        left_widget.setLayout(left_main_layout)
 
         # ---- RIGHT COLUMN (Sweep Plot) ---- #
         right_column_layout = QVBoxLayout()
@@ -347,13 +348,23 @@ class DG4202DefaultWidget(QWidget):
         plot_widget.setLabel("bottom", "Time", units="s")
         self.waveform_plot_data[channel] = plot_widget.plot([], pen="y")
         # Add spacers to constrain the size of the plot widget
-        right_column_layout.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
-        right_column_layout.addWidget(plot_widget, alignment=Qt.AlignmentFlag.AlignCenter)
-        right_column_layout.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
+        right_column_layout.addSpacerItem(
+            QSpacerItem(
+                20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
+            )
+        )
+        right_column_layout.addWidget(
+            plot_widget, alignment=Qt.AlignmentFlag.AlignCenter
+        )
+        right_column_layout.addSpacerItem(
+            QSpacerItem(
+                20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
+            )
+        )
         # Add to main layout
         right_widget = QWidget()
         right_widget.setLayout(right_column_layout)
-        channel_layout.addWidget(right_widget,0)
+        channel_layout.addWidget(right_widget, 0)
 
         # ---- COMBINE AND RETURN ---- #
         channel_widget.setLayout(channel_layout)
