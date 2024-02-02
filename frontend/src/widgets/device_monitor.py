@@ -102,6 +102,7 @@ class DeviceMonitorWidget(QWidget):
     def log_event(self, description: str):
         timestamp = datetime.now().isoformat()
         event = {"timestamp": timestamp, "description": description}
+        print(f"[Monitor] {description} at {timestamp}.")
         if not self.monitor_logs.exists():
             with open(self.monitor_logs, "w") as file:
                 json.dump([event], file, indent=4)
@@ -122,7 +123,6 @@ class DeviceMonitorWidget(QWidget):
         self, device_name: str, manager: DeviceManagerBase, row: int
     ):
         is_alive = manager.is_device_alive()
-        print(f"{manager} is {is_alive}")
         if is_alive and self.device_statuses[device_name] != is_alive:
             self.log_event(f"{device_name} Connected")
         elif not is_alive and self.device_statuses[device_name] != is_alive:

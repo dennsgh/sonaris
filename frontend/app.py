@@ -125,7 +125,7 @@ class MainWindow(ModularMainWindow):
         page_widget: QWidget = self.sidebar_dict.get(page_name)
         if page_widget and self.last_page != page_name:
             self.sidebar_content.setCurrentWidget(page_widget)
-            print(f"[Sidebar] Switch to {page_name} - {page_widget}")
+            print(f"[Sidebar] Switch event to {page_name}")
             page_widget.update()
             self.last_page = page_name
 
