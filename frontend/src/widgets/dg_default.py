@@ -162,7 +162,11 @@ class DG4202DefaultWidget(QWidget):
         self.input_objects[channel]["TIME"] = duration_input
         # Set the text of the sweep input to the current value
         current_sweep_value = str(
-            self.all_parameters[f"{channel}"]["mode"]["parameters"]["sweep"]["TIME"]
+            self.all_parameters.get(f"{channel}", {})
+            .get("mode", {})
+            .get("parameters", {})
+            .get("sweep", {})
+            .get("TIME", 0.0)
         )
         duration_input.setText(current_sweep_value)
         left_first_column_layout.addRow("Sweep (s):", duration_input)
@@ -173,7 +177,11 @@ class DG4202DefaultWidget(QWidget):
         self.input_objects[channel]["RTIME"] = rtime_input
         # Set the text of the return time input to the current value
         current_rtime_value = str(
-            self.all_parameters[f"{channel}"]["mode"]["parameters"]["sweep"]["RTIME"]
+            self.all_parameters.get(f"{channel}", {})
+            .get("mode", {})
+            .get("parameters", {})
+            .get("sweep", {})
+            .get("RTIME", 0.0)
         )
         rtime_input.setText(current_rtime_value)
         left_first_column_layout.addRow("Return (ms):", rtime_input)
@@ -184,7 +192,11 @@ class DG4202DefaultWidget(QWidget):
         self.input_objects[channel]["FSTART"] = fstart_input
         # Set the text of the start frequency input to the current value
         current_fstart_value = str(
-            self.all_parameters[f"{channel}"]["mode"]["parameters"]["sweep"]["FSTART"]
+            self.all_parameters.get(f"{channel}", {})
+            .get("mode", {})
+            .get("parameters", {})
+            .get("sweep", {})
+            .get("FSTART", 0.0)
         )
         fstart_input.setText(current_fstart_value)
         left_first_column_layout.addRow("Start (Hz):", fstart_input)
@@ -195,7 +207,11 @@ class DG4202DefaultWidget(QWidget):
         self.input_objects[channel]["FSTOP"] = fstop_input
         # Set the text of the stop frequency input to the current value
         current_fstop_value = str(
-            self.all_parameters[f"{channel}"]["mode"]["parameters"]["sweep"]["FSTOP"]
+            self.all_parameters.get(f"{channel}", {})
+            .get("mode", {})
+            .get("parameters", {})
+            .get("sweep", {})
+            .get("FSTOP", 0.0)
         )
         fstop_input.setText(current_fstop_value)
         left_second_column_layout.addRow("Stop (Hz):", fstop_input)
@@ -206,9 +222,11 @@ class DG4202DefaultWidget(QWidget):
         self.input_objects[channel]["HTIME_START"] = htime_start_input
         # Set the text of the start hold time input to the current value
         current_htime_start_value = str(
-            self.all_parameters[f"{channel}"]["mode"]["parameters"]["sweep"][
-                "HTIME_START"
-            ]
+            self.all_parameters.get(f"{channel}", {})
+            .get("mode", {})
+            .get("parameters", {})
+            .get("sweep", {})
+            .get("HTIME_START", 0.0)
         )
         htime_start_input.setText(current_htime_start_value)
         left_second_column_layout.addRow("Start Hold (ms):", htime_start_input)
@@ -219,9 +237,11 @@ class DG4202DefaultWidget(QWidget):
         self.input_objects[channel]["HTIME_STOP"] = htime_stop_input
         # Set the text of the stop hold time input to the current value
         current_htime_stop_value = str(
-            self.all_parameters[f"{channel}"]["mode"]["parameters"]["sweep"][
-                "HTIME_STOP"
-            ]
+            self.all_parameters.get(f"{channel}", {})
+            .get("mode", {})
+            .get("parameters", {})
+            .get("sweep", {})
+            .get("HTIME_STOP", 0.0)
         )
         htime_stop_input.setText(current_htime_stop_value)
         left_second_column_layout.addRow("Stop Hold (ms):", htime_stop_input)
@@ -305,21 +325,33 @@ class DG4202DefaultWidget(QWidget):
 
         # Frequency input
         freq_input = QLineEdit(
-            str(self.all_parameters[f"{channel}"]["waveform"]["frequency"])
+            str(
+                self.all_parameters.get(f"{channel}", {})
+                .get("waveform", {})
+                .get("frequency", 0.0)
+            )
         )
         self.input_objects[channel]["FREQUENCY"] = freq_input
         left_column_layout.addRow("Frequency (Hz)", freq_input)
 
         # Amplitude input
         amp_input = QLineEdit(
-            str(self.all_parameters[f"{channel}"]["waveform"]["amplitude"])
+            str(
+                self.all_parameters.get(f"{channel}", {})
+                .get("waveform", {})
+                .get("amplitude", 0.0)
+            )
         )
         self.input_objects[channel]["AMPLITUDE"] = amp_input
         left_column_layout.addRow("Amplitude (V)", amp_input)
 
         # Offset input
         offset_input = QLineEdit(
-            str(self.all_parameters[f"{channel}"]["waveform"]["offset"])
+            str(
+                self.all_parameters.get(f"{channel}", {})
+                .get("waveform", {})
+                .get("offset", 0.0)
+            )
         )
         self.input_objects[channel]["OFFSET"] = offset_input
         left_column_layout.addRow("Offset (V)", offset_input)
@@ -386,54 +418,66 @@ class DG4202DefaultWidget(QWidget):
                 float(sweep)
                 if sweep
                 else float(
-                    self.all_parameters[f"{channel}"]["mode"]["parameters"]["sweep"][
-                        "TIME"
-                    ]
+                    self.all_parameters.get(f"{channel}", {})
+                    .get("mode", {})
+                    .get("parameters", {})
+                    .get("sweep", {})
+                    .get("TIME", 0.0)
                 )
             )
             rtime = (
                 float(rtime)
                 if rtime
                 else float(
-                    self.all_parameters[f"{channel}"]["mode"]["parameters"]["sweep"][
-                        "RTIME"
-                    ]
+                    self.all_parameters.get(f"{channel}", {})
+                    .get("mode", {})
+                    .get("parameters", {})
+                    .get("sweep", {})
+                    .get("RTIME", 0.0)
                 )
             )
             fstart = (
                 float(fstart)
                 if fstart
                 else float(
-                    self.all_parameters[f"{channel}"]["mode"]["parameters"]["sweep"][
-                        "FSTART"
-                    ]
+                    self.all_parameters.get(f"{channel}", {})
+                    .get("mode", {})
+                    .get("parameters", {})
+                    .get("sweep", {})
+                    .get("FSTART", 0.0)
                 )
             )
             fstop = (
                 float(fstop)
                 if fstop
                 else float(
-                    self.all_parameters[f"{channel}"]["mode"]["parameters"]["sweep"][
-                        "FSTART"
-                    ]
+                    self.all_parameters.get(f"{channel}", {})
+                    .get("mode", {})
+                    .get("parameters", {})
+                    .get("sweep", {})
+                    .get("FSTOP", 0.0)
                 )
             )
             htime_start = (
                 float(htime_start)
                 if htime_start
                 else float(
-                    self.all_parameters[f"{channel}"]["mode"]["parameters"]["sweep"][
-                        "HTIME_START"
-                    ]
+                    self.all_parameters.get(f"{channel}", {})
+                    .get("mode", {})
+                    .get("parameters", {})
+                    .get("sweep", {})
+                    .get("HTIME_START", 0.0)
                 )
             )
             htime_stop = (
                 float(htime_stop)
                 if htime_stop
                 else float(
-                    self.all_parameters[f"{channel}"]["mode"]["parameters"]["sweep"][
-                        "HTIME_STOP"
-                    ]
+                    self.all_parameters.get(f"{channel}", {})
+                    .get("mode", {})
+                    .get("parameters", {})
+                    .get("sweep", {})
+                    .get("HTIME_STOP", 0.0)
                 )
             )
             params = {
@@ -457,11 +501,12 @@ class DG4202DefaultWidget(QWidget):
         if self.check_connection():
             set_to = (
                 False
-                if self.all_parameters[f"{channel}"]["output_status"] == "ON"
+                if self.all_parameters.get(f"{channel}", {}).get("output_status", "ERR")
+                == "ON"
                 else True
             )
             print(
-                f'{channel} is {self.all_parameters[f"{channel}"]["output_status"]} -> {set_to}'
+                f'{channel} is {self.all_parameters.get(f"{channel}", {}).get("output_status", "ERR")} -> {set_to}'
             )
             self.my_generator.output_on_off(channel, set_to)
             self.check_connection()  # updates dictionary
@@ -477,7 +522,7 @@ class DG4202DefaultWidget(QWidget):
             output_btn (QPushButton): The output button to be updated.
             channel (int): The channel number.
         """
-        status = self.all_parameters[f"{channel}"]["output_status"]
+        status = self.all_parameters.get(f"{channel}", {}).get("output_status", "ERR")
         if status == "ON":
             self.input_objects[channel]["TOGGLE_OUTPUT"].setStyleSheet(
                 "background-color: white; color: black;"
