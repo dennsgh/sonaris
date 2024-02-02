@@ -1,5 +1,6 @@
 import argparse
 import os
+import signal
 import sys
 from pathlib import Path
 from typing import Dict, Optional
@@ -8,13 +9,12 @@ import pyvisa
 import qdarktheme
 from features.managers import DG4202Manager, EDUX1002AManager, StateManager
 from header import OSCILLOSCOPE_BUFFER_SIZE, get_tasks
-from pages import factory, general, scheduler, settings, monitor
+from pages import factory, general, monitor, scheduler, settings
 from PyQt6.QtGui import QGuiApplication, QIcon
 from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget, QWidget
 from widgets.menu import MainMenuBar
 from widgets.sidebar import Sidebar
 from widgets.templates import ModularMainWindow
-import signal
 
 from scheduler.timekeeper import Timekeeper
 from scheduler.worker import Worker
@@ -71,7 +71,10 @@ class MainWindow(ModularMainWindow):
         # ---------------------------------------------------------------------- #
         # ---------------------------SIDEBAR SETUP------------------------------ #
         self.sidebar = Sidebar(self)
-
+        device_managers = {
+            "DG4202": factory.dg4202_manager,
+            "EDUX1002A": factory.edux1002a_manager,
+        }
         self.sidebar.sizePolicy()
         self.sidebar_dict: Dict[str, QWidget] = {
             "General": general.GeneralPage(
@@ -87,19 +90,19 @@ class MainWindow(ModularMainWindow):
                 args_dict=args_dict,
                 root_callback=self.root_callback,
             ),
-            "Settings": settings.SettingsPage(
-                parent=self, args_dict=args_dict, root_callback=self.root_callback
-            ),
             "Monitor": monitor.MonitorPage(
-                device_managers = {
-                    "DG4202" : factory.dg4202_manager,
-                    "EDUX1002A": factory.edux1002a_manager
-                },
+                device_managers=device_managers,
                 parent=self,
                 args_dict=args_dict,
                 monitor_logs=factory.MONITOR_FILE,
-                root_callback=self.root_callback
-            )
+                root_callback=self.root_callback,
+            ),
+            "Settings": settings.SettingsPage(
+                device_managers=device_managers,
+                parent=self,
+                args_dict=args_dict,
+                root_callback=self.root_callback,
+            ),
         }
         self.sidebar.addItems(self.sidebar_dict.keys())  # Add strings to sidebar items
         self.sidebar_content = QStackedWidget(self)

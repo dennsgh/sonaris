@@ -1,8 +1,9 @@
 import json
 import os
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Dict
 
+from features.managers import DeviceManagerBase
 from PyQt6.QtWidgets import QLabel, QLineEdit, QPushButton, QVBoxLayout
 from widgets.templates import BasePage
 
@@ -10,6 +11,7 @@ from widgets.templates import BasePage
 class SettingsPage(BasePage):
     def __init__(
         self,
+        device_managers: Dict[str, DeviceManagerBase],
         parent=None,
         args_dict: dict = None,
         root_callback: Callable = None,

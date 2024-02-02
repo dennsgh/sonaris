@@ -205,9 +205,7 @@ class OscilloscopeWidget(QWidget):
         button_layout.addWidget(self.freeze_button)
 
         self.auto_button = QPushButton("AUTO")
-        self.auto_button.clicked.connect(
-            self.edux1002a_manager.edux1002a_device.autoscale
-        )
+        self.auto_button.clicked.connect(self.edux1002a_manager.autoscale)
         button_layout.addWidget(self.auto_button)
         self.setLayout(layout)
 

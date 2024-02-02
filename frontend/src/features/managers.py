@@ -1,18 +1,28 @@
+import abc
 import json
+import logging
 import os
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
+
 import pyvisa
 
 # Import classes and modules from device module as needed.
 from device.data import DataBuffer
 from device.dg4202 import DG4202, DG4202DataSource, DG4202Detector, DG4202Mock
-from device.edux1002a import EDUX1002A, EDUX1002ADataSource, EDUX1002ADetector, EDUX1002AMock
+from device.edux1002a import (
+    EDUX1002A,
+    EDUX1002ADataSource,
+    EDUX1002ADetector,
+    EDUX1002AMock,
+)
 
-import logging
 # Setting up basic logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
 
 class StateManager:
     def __init__(self, json_file: Path = None):
@@ -53,9 +63,16 @@ class StateManager:
         uptime_seconds = time.time() - self.birthdate
         return str(timedelta(seconds=int(uptime_seconds)))
 
-class DeviceManagerBase:
-    device_type = 'managed_device'
-    def __init__(self, state_manager: StateManager, args_dict: dict, resource_manager: pyvisa.ResourceManager):
+
+class DeviceManagerBase(abc.ABC):
+    device_type = "managed_device"
+
+    def __init__(
+        self,
+        state_manager: StateManager,
+        args_dict: dict,
+        resource_manager: pyvisa.ResourceManager,
+    ):
         self.state_manager = state_manager
         self.args_dict = args_dict
         self.rm = resource_manager
@@ -81,10 +98,16 @@ class DeviceManagerBase:
         else:
             return "N/A"
 
-class DG4202Manager(DeviceManagerBase):
-    device_type = 'dg'
 
-    def __init__(self, state_manager: StateManager, args_dict: dict, resource_manager: pyvisa.ResourceManager):
+class DG4202Manager(DeviceManagerBase):
+    device_type = "dg"
+
+    def __init__(
+        self,
+        state_manager: StateManager,
+        args_dict: dict,
+        resource_manager: pyvisa.ResourceManager,
+    ):
         super().__init__(state_manager, args_dict, resource_manager)
         self._mock_device = DG4202Mock()
         self.data_source = None
@@ -129,7 +152,7 @@ class DG4202Manager(DeviceManagerBase):
     def is_device_alive(self) -> bool:
         try:
             if self.args_dict["hardware_mock"]:
-                return self.dg4202_device.killed
+                return ~self.dg4202_device.killed
             idn = self.dg4202_device.interface.read("*IDN?")
             return "DG4202" in idn
         except Exception as e:
@@ -138,10 +161,17 @@ class DG4202Manager(DeviceManagerBase):
     def get_data(self) -> dict:
         return self.data_source.query_data() or {}
 
-class EDUX1002AManager(DeviceManagerBase):
-    device_type = 'edux'
 
-    def __init__(self, state_manager: StateManager, args_dict: dict, resource_manager: pyvisa.ResourceManager, buffer_size: int):
+class EDUX1002AManager(DeviceManagerBase):
+    device_type = "edux"
+
+    def __init__(
+        self,
+        state_manager: StateManager,
+        args_dict: dict,
+        resource_manager: pyvisa.ResourceManager,
+        buffer_size: int,
+    ):
         super().__init__(state_manager, args_dict, resource_manager)
         self._mock_device = EDUX1002AMock()
         self.buffers = {1: None, 2: None}
@@ -158,8 +188,12 @@ class EDUX1002AManager(DeviceManagerBase):
             print("Failed to initialize EDUX1002A device.")
             return
         self.buffers = {
-            1: DataBuffer(EDUX1002ADataSource(self.edux1002a_device, 1), self.buffer_size),
-            2: DataBuffer(EDUX1002ADataSource(self.edux1002a_device, 2), self.buffer_size),
+            1: DataBuffer(
+                EDUX1002ADataSource(self.edux1002a_device, 1), self.buffer_size
+            ),
+            2: DataBuffer(
+                EDUX1002ADataSource(self.edux1002a_device, 2), self.buffer_size
+            ),
         }
 
     def get_device(self) -> EDUX1002A:
@@ -187,10 +221,13 @@ class EDUX1002AManager(DeviceManagerBase):
         self.data_source = EDUX1002ADataSource(self.edux1002a_device)
         return self.edux1002a_device
 
+    def autoscale(self, *args, **kwargs):
+        self.edux1002a_device.autoscale()
+
     def is_device_alive(self) -> bool:
         try:
             if self.args_dict["hardware_mock"]:
-                return self.edux1002a_device.killed
+                return ~self.edux1002a_device.killed
             idn = self.edux1002a_device.interface.read("*IDN?")
             return "EDU-X 1002A" in idn
         except Exception as e:
