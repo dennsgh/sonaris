@@ -29,22 +29,10 @@ class GeneralPage(BasePage):
         self.initUI()
 
     def check_connection(self) -> bool:
-        self.my_generator = self.dg4202_manager.get_device()
-        self.all_parameters = self.dg4202_manager.data_source.query_data()
-        if self.my_generator is not None:
-            is_alive = self.my_generator.is_connection_alive()
-            if not is_alive:
-                self.my_generator = None
-            return is_alive
-        return False
+        return self.dg4202_manager.is_device_alive()
 
     def initUI(self):
         self.main_layout = QVBoxLayout()
-        self.check_connection()
-        self.connection_status_label = QLabel(
-            f"Connection Status: {self.all_parameters.get('connected', 'Not connected')}"
-        )
-        self.main_layout.addWidget(self.connection_status_label)
         self.oscilloscope = OscilloscopeWidget(
             self.edux1002a_manager, tick=TICK_INTERVAL
         )
@@ -67,4 +55,5 @@ class GeneralPage(BasePage):
         self.setLayout(self.main_layout)
 
     def update(self):
-        self.default_widget.update()
+        if self.check_connection():
+            self.default_widget.update()
