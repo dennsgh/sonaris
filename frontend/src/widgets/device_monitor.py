@@ -87,17 +87,27 @@ class DeviceMonitorWidget(QWidget):
                 )
 
     def clear_event_log(self):
+        # Confirmation message box
         reply = QMessageBox.question(
             self,
-            "Clear Event Log",
-            "Are you sure you want to clear the event log?",
+            "Clear Archive",
+            "Are you sure you want to clear the monitoring logs?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
+
+        # Check if the user confirmed the action
         if reply == QMessageBox.StandardButton.Yes:
-            self.event_log_list.clear()
-            with open(self.monitor_logs, "w") as file:
-                json.dump([], file, indent=4)
+            try:
+                self.event_log_list.clear()
+                with open(self.monitor_logs, "w") as file:
+                    json.dump([], file, indent=4)
+                QMessageBox.information(
+                    self, "Success", "The monitoring logs has been cleared."
+                )
+            except Exception as e:
+                print(f"Error clearing monitoring logs: {e}")
+                QMessageBox.critical(self, "Error", "Could not clear the archive.")
 
     def log_event(self, description: str):
         timestamp = datetime.now().isoformat()

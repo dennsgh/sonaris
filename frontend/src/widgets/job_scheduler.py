@@ -198,11 +198,26 @@ class SchedulerWidget(QWidget):
             pass
 
     def clear_finished_jobs(self):
-        try:
-            self.timekeeper.clear_archive()
-            self.update_finished_jobs_list()
-        except Exception as e:
-            print(f"Error clearing finished jobs: {e}")
+        # Confirmation message box
+        reply = QMessageBox.question(
+            self,
+            "Clear Archive",
+            "Are you sure you want to clear the archive?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+
+        # Check if the user confirmed the action
+        if reply == QMessageBox.StandardButton.Yes:
+            try:
+                self.timekeeper.clear_archive()
+                self.update_finished_jobs_list()
+                QMessageBox.information(
+                    self, "Success", "The archive has been cleared."
+                )
+            except Exception as e:
+                print(f"Error clearing finished jobs: {e}")
+                QMessageBox.critical(self, "Error", "Could not clear the archive.")
 
     def open_job_config_popup(self):
         self.popup.exec()
@@ -478,10 +493,16 @@ class JobConfigPopup(QDialog):
         return {}
 
 
+from PyQt6.QtWidgets import QSizePolicy
+
+
 class JobDetailsDialog(QDialog):
     def __init__(self, job_details, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Job Details")
+
+        # Set a larger initial width for the dialog
+        self.resize(400, 300)  # You can adjust the width and height as needed
 
         layout = QVBoxLayout(self)
 
@@ -489,6 +510,11 @@ class JobDetailsDialog(QDialog):
         self.tableWidget.setColumnCount(2)
         self.tableWidget.setHorizontalHeaderLabels(["Field", "Value"])
         self.populate_table(job_details)
+
+        # Set the table to expand to fill the dialog
+        self.tableWidget.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
 
         layout.addWidget(self.tableWidget)
 
@@ -499,9 +525,20 @@ class JobDetailsDialog(QDialog):
     def populate_table(self, job_details):
         self.tableWidget.setRowCount(len(job_details))
         for row, (key, value) in enumerate(job_details.items()):
-            self.tableWidget.setItem(row, 0, QTableWidgetItem(str(key)))
-            self.tableWidget.setItem(row, 1, QTableWidgetItem(str(value)))
+            key_item = QTableWidgetItem(str(key))
+            value_item = QTableWidgetItem(str(value))
+
+            # Set the items to be non-editable
+            key_item.setFlags(key_item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable)
+            value_item.setFlags(value_item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable)
+
+            self.tableWidget.setItem(row, 0, key_item)
+            self.tableWidget.setItem(row, 1, value_item)
+
+        # Resize columns to fit the content after populating the table
         self.tableWidget.resizeColumnsToContents()
+        # Optionally, you can stretch the last section to fill the remaining space
+        self.tableWidget.horizontalHeader().setStretchLastSection(True)
 
 
 # if __name__ == "__main__":
