@@ -84,10 +84,25 @@ class SchedulerWidget(QWidget):
         self.finishedJobsLabel = QLabel("Finished Jobs:", rightWidget)
         rightLayout.addWidget(self.finishedJobsLabel)
 
-        self.finishedJobsList = QListWidget(rightWidget)
-        self.finishedJobsList.itemDoubleClicked.connect(self.show_archive_entry)
+        self.finishedJobsTable = QTableWidget(rightWidget)
+        self.finishedJobsTable.setColumnCount(
+            3
+        )  # Assuming you have 3 columns: Result, Task, Job ID
+        self.finishedJobsTable.setHorizontalHeaderLabels(["Result", "Task", "Job ID"])
+        self.finishedJobsTable.horizontalHeader().setSectionResizeMode(
+            QHeaderView.ResizeMode.Stretch
+        )
+        self.finishedJobsTable.setSelectionBehavior(
+            QTableWidget.SelectionBehavior.SelectRows
+        )
+        self.finishedJobsTable.setSelectionMode(
+            QTableWidget.SelectionMode.SingleSelection
+        )
+
+        self.finishedJobsTable.cellDoubleClicked.connect(self.show_archive_entry)
+
         self.update_finished_jobs_list()
-        rightLayout.addWidget(self.finishedJobsList)
+        rightLayout.addWidget(self.finishedJobsTable)
 
         self.clearFinishedJobsButton = QPushButton("Clear Archive", rightWidget)
         self.clearFinishedJobsButton.clicked.connect(self.clear_finished_jobs)
@@ -149,14 +164,35 @@ class SchedulerWidget(QWidget):
             print("No job selected")
 
     def update_finished_jobs_list(self):
-        self.finishedJobsList.clear()
+        # Clear the existing rows in the table
+        self.finishedJobsTable.setRowCount(0)
         try:
             with self.timekeeper.archive.open("r") as file:
                 finished_jobs = json.load(file)
+
             for job_id, job_info in finished_jobs.items():
-                self.finishedJobsList.addItem(
-                    f"[{'OK' if job_info['result'] else 'ERR'}]{job_info['task']}\t - [{job_id}]"
+                # Determine the row number where the new row will be inserted (i.e., the end of the table)
+                row_position = self.finishedJobsTable.rowCount()
+                # Insert a new row at this position
+                self.finishedJobsTable.insertRow(row_position)
+
+                # Create table items for each piece of information
+                result_item = QTableWidgetItem("OK" if job_info["result"] else "ERR")
+                task_item = QTableWidgetItem(job_info["task"])
+                job_id_item = QTableWidgetItem(job_id)
+                result_item.setFlags(
+                    result_item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable
                 )
+                task_item.setFlags(
+                    task_item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable
+                )
+                job_id_item.setFlags(
+                    job_id_item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable
+                )
+                # Insert the items into the new row, in their respective columns
+                self.finishedJobsTable.setItem(row_position, 0, result_item)
+                self.finishedJobsTable.setItem(row_position, 1, task_item)
+                self.finishedJobsTable.setItem(row_position, 2, job_id_item)
 
         except FileNotFoundError:
             pass
@@ -178,21 +214,19 @@ class SchedulerWidget(QWidget):
             # Relay tick to main app.
             self.root_callback()
 
-    def show_archive_entry(self, item):
-        item_text = item.text()
-        job_id_start = item_text.find("[")
-        job_id_end = item_text.find("]")
-
-        if job_id_start != -1 and job_id_end != -1:
-            job_id = item_text[job_id_start + 1 : job_id_end]
-
+    def show_archive_entry(self, row, column):
+        job_id_item = self.finishedJobsTable.item(
+            row, 2
+        )  # Assuming Job ID is in the 3rd column
+        if job_id_item:
+            job_id = job_id_item.text()
             try:
                 with self.timekeeper.archive.open("r") as file:
                     finished_jobs = json.load(file)
                 job_details = finished_jobs.get(job_id, {})
                 if job_details:
                     dialog = JobDetailsDialog(job_details, self)
-                    dialog.show()
+                    dialog.exec()
             except FileNotFoundError:
                 QMessageBox.warning(
                     self, "Error", "File not found. Could not retrieve job details."
@@ -470,26 +504,26 @@ class JobDetailsDialog(QDialog):
         self.tableWidget.resizeColumnsToContents()
 
 
-if __name__ == "__main__":
-    import sys
+# if __name__ == "__main__":
+#     import sys
 
-    # === FOR DEBUGGING=== #
-    from scheduler.worker import Worker
+#     # === FOR DEBUGGING=== #
+#     from scheduler.worker import Worker
 
-    factory.worker = Worker(
-        function_map_file=factory.FUNCTION_MAP_FILE,
-        logfile=factory.WORKER_LOGS,
-    )
-    factory.timekeeper = Timekeeper(
-        persistence_file=factory.TIMEKEEPER_JOBS_FILE,
-        worker_instance=factory.worker,
-        logfile=factory.TIMEKEEPER_LOGS,
-    )
-    for task_name, func_pointer in get_tasks():
-        factory.worker.register_task(func_pointer, task_name)
-    # === FOR DEBUGGING=== #
+#     factory.worker = Worker(
+#         function_map_file=factory.FUNCTION_MAP_FILE,
+#         logfile=factory.WORKER_LOGS,
+#     )
+#     factory.timekeeper = Timekeeper(
+#         persistence_file=factory.TIMEKEEPER_JOBS_FILE,
+#         worker_instance=factory.worker,
+#         logfile=factory.TIMEKEEPER_LOGS,
+#     )
+#     for task_name, func_pointer in get_tasks():
+#         factory.worker.register_task(func_pointer, task_name)
+#     # === FOR DEBUGGING=== #
 
-    app_qt = QApplication(sys.argv)
-    ex = SchedulerWidget(timekeeper=factory.timekeeper)
-    ex.show()
-    sys.exit(app_qt.exec())
+#     app_qt = QApplication(sys.argv)
+#     ex = SchedulerWidget(timekeeper=factory.timekeeper)
+#     ex.show()
+#     sys.exit(app_qt.exec())
