@@ -154,7 +154,10 @@ class SchedulerWidget(QWidget):
             with self.timekeeper.archive.open("r") as file:
                 finished_jobs = json.load(file)
             for job_id, job_info in finished_jobs.items():
-                self.finishedJobsList.addItem(f"{job_info['task']}   \t - [{job_id}]")
+                self.finishedJobsList.addItem(
+                    f"[{'OK' if job_info['result'] else 'ERR'}]{job_info['task']}\t - [{job_id}]"
+                )
+
         except FileNotFoundError:
             pass
 
@@ -176,28 +179,24 @@ class SchedulerWidget(QWidget):
             self.root_callback()
 
     def show_archive_entry(self, item):
-        # Get the text of the double-clicked item
         item_text = item.text()
-
-        # Extract the job ID from the text (assuming it's enclosed in square brackets [])
         job_id_start = item_text.find("[")
         job_id_end = item_text.find("]")
 
         if job_id_start != -1 and job_id_end != -1:
             job_id = item_text[job_id_start + 1 : job_id_end]
 
-            # Retrieve the job details from the archive using the job_id
             try:
                 with self.timekeeper.archive.open("r") as file:
                     finished_jobs = json.load(file)
-                job_details = finished_jobs.get(job_id)
+                job_details = finished_jobs.get(job_id, {})
                 if job_details:
-                    # Display the job details using a QMessageBox or any other method
-                    QMessageBox.information(
-                        self, "Job Details", f"Job ID: {job_id}\nDetails: {job_details}"
-                    )
+                    dialog = JobDetailsDialog(job_details, self)
+                    dialog.exec()
             except FileNotFoundError:
-                pass
+                QMessageBox.warning(
+                    self, "Error", "File not found. Could not retrieve job details."
+                )
 
 
 class JobConfigPopup(QDialog):
@@ -445,7 +444,30 @@ class JobConfigPopup(QDialog):
         return {}
 
 
-# Rest of the application code remains the same
+class JobDetailsDialog(QDialog):
+    def __init__(self, job_details, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Job Details")
+
+        layout = QVBoxLayout(self)
+
+        self.tableWidget = QTableWidget(self)
+        self.tableWidget.setColumnCount(2)
+        self.tableWidget.setHorizontalHeaderLabels(["Field", "Value"])
+        self.populate_table(job_details)
+
+        layout.addWidget(self.tableWidget)
+
+        closeButton = QPushButton("Close")
+        closeButton.clicked.connect(self.accept)
+        layout.addWidget(closeButton)
+
+    def populate_table(self, job_details):
+        self.tableWidget.setRowCount(len(job_details))
+        for row, (key, value) in enumerate(job_details.items()):
+            self.tableWidget.setItem(row, 0, QTableWidgetItem(str(key)))
+            self.tableWidget.setItem(row, 1, QTableWidgetItem(str(value)))
+        self.tableWidget.resizeColumnsToContents()
 
 
 if __name__ == "__main__":

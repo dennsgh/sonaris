@@ -1,5 +1,6 @@
 import logging
 import os
+import traceback
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
@@ -145,14 +146,25 @@ class Worker:
             Any: The result of the task function, if any.
         """
         task_func = self.function_map.get_function(task_name)
-        result = "Task failed to execute"
+        result = False # Initialize false
+        error_info = None  # Initialize a variable to store exception info
         if task_func:
-            # We need to ensure that 'args' is passed as a tuple and 'kwargs' as a dictionary
-            self.logger.info(f"Execute task '{task_name}'(id:{job_id}).")
-            result = self.function_map.parse_and_call(task_func, *args, **kwargs)
-
+            self.logger.info(f"Executing task '{task_name}'(id:{job_id}).")
+            try:
+                self.function_map.parse_and_call(task_func, *args, **kwargs)
+                result = True
+                self.logger.info(
+                    f"Task '{task_name}' successfully executed."
+                )  # Changed from error to info
+            except Exception as e:
+                error_info = traceback.format_exc()  # Capture and format the traceback
+                self.logger.error(
+                    f"Task '{task_name}' failed to execute. Error: {e}, Traceback: {error_info}"
+                )
         else:
             self.logger.error(f"Task '{task_name}' is not registered.")
         if _callback and job_id:
-            _callback(job_id)  # Call the callback to remove the job
+            _callback(
+                job_id, result, error_info
+            )  # Modified to pass the traceback information
         return result

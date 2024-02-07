@@ -27,12 +27,14 @@ class DG4202DefaultWidget(QWidget):
     def check_connection(self) -> bool:
         self.my_generator = self.dg4202_manager.get_device()
         self.all_parameters = self.dg4202_manager.get_data()
-        if self.my_generator is not None:
-            is_alive = self.my_generator.is_connection_alive()
-            if not is_alive:
-                self.my_generator = None
-            return is_alive
-        return False
+
+        if self.my_generator is None:
+            return False
+
+        is_alive = self.my_generator.is_connection_alive()
+        if not is_alive:
+            self.my_generator = None
+        return is_alive
 
     def __init__(
         self, dg4202_manager: DG4202Manager, parent=None, args_dict: dict = None

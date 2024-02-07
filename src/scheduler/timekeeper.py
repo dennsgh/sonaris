@@ -210,14 +210,34 @@ class Timekeeper:
         except Exception as e:
             self.logger.error(f"Failed to archive job {job_id}: {e}")
 
-    def callback(self, job_id: str) -> None:
+    def callback(self, job_id: str, result: bool, error_info: str = None) -> None:
         """
         Callback method that is called when a job is completed.
+
+        Args:
+            job_id (str): The unique identifier of the job.
+            result (bool): The result of the job execution, True if successful, False otherwise.
+            error_info (str, optional): The traceback or error information if the job failed.
         """
+        # Retrieve the job information, if not found, use an empty dictionary
         job_info = self.jobs.get(job_id, {})
-        self.archive_job(job_id, job_info)
+
+        # Update the job_info dictionary with the result of the execution
+        job_info["result"] = result
+
+        # If there is error information (job execution failed), add it to the job_info
+        if error_info:
+            job_info["error_info"] = error_info
+
+        # Perform job archival and removal
+        self.archive_job(
+            job_id, job_info
+        )  # Assuming you want to archive the job with updated info
         self.remove_job(job_id)
+
+        # Call the user-defined callback if it exists
         if self.user_callback is not None:
+            # You might want to pass additional arguments or the updated job_info to your user_callback
             self.user_callback()
 
     def remove_job(self, job_id: str) -> None:
