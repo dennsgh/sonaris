@@ -192,7 +192,7 @@ class SchedulerWidget(QWidget):
                 job_details = finished_jobs.get(job_id, {})
                 if job_details:
                     dialog = JobDetailsDialog(job_details, self)
-                    dialog.exec()
+                    dialog.show()
             except FileNotFoundError:
                 QMessageBox.warning(
                     self, "Error", "File not found. Could not retrieve job details."
