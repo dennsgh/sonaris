@@ -52,7 +52,7 @@ def task_set_sweep_parameters(
     return True
 
 
-def task_auto_edux1002a(kwarg_value):
+def task_auto_edux1002a(*args, **kwargs):
     # for testing, kwarg_value means nothing
     factory.edux1002a_manager.get_device().autoscale()
     return True

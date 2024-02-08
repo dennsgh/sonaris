@@ -22,7 +22,6 @@ from scheduler.worker import Worker
 
 def signal_handler(signum, frame):
     print("Exit signal detected.")
-
     # Invoke the default SIGINT handler to exit the application
     signal.signal(signum, signal.SIG_DFL)
     os.kill(os.getpid(), signum)
@@ -178,29 +177,19 @@ def run_application():
         action="store_true",
         help="Run the app in hardware mock mode.",
     )
-    parser.add_argument(
-        "--debug",
-        action="store_true",
-        default=False,
-        help="Run the application in debug mode.",
-    )
-    parser.add_argument(
-        "--api-server", type=int, help="Launch an api server on the specified port."
-    )
-    parser.add_argument(
-        "-p",
-        "--port",
-        type=int,
-        default=8501,
-        help="Specify the port number to run on. Defaults to 8501.",
-    )
-    parser.add_argument(
-        "--env",
-        type=str,
-        default="development",
-        choices=["development", "production"],
-        help="Specify the environment to run the application in. Defaults to development.",
-    )
+    # parser.add_argument(
+    #     "--debug",
+    #     action="store_true",
+    #     default=False,
+    #     help="Run the application in debug mode.",
+    # )
+    # parser.add_argument(
+    #     "--env",
+    #     type=str,
+    #     default="development",
+    #     choices=["development", "production"],
+    #     help="Specify the environment to run the application in. Defaults to development.",
+    # )
 
     args = parser.parse_args()
     args_dict = vars(args)

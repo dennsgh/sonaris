@@ -191,7 +191,7 @@ class DG4202Manager(DeviceManagerBase):
         return self.device
 
     def get_data(self) -> dict:
-        return self.data_source.query_data() or {}
+        return self.data_source.query_data()
 
 
 class EDUX1002AManager(DeviceManagerBase):
@@ -218,7 +218,6 @@ class EDUX1002AManager(DeviceManagerBase):
         else:
             self.device: EDUX1002A = detector.detect_device()
         if not self.device:
-            print("Failed to initialize EDUX1002A device.")
             return
         self.buffers = {
             1: DataBuffer(EDUX1002ADataSource(self.device, 1), self.buffer_size),
