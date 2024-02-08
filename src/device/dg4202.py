@@ -262,26 +262,19 @@ class DG4202(Device):
             channel (int): The output channel to set.
             sweep_params (dict): Dictionary of parameters for sweep mode.
         """
-        if sweep_params.get("FSTART") is not None:
-            self.interface.write(
-                f"SOURce{channel}:FREQuency:STaRt {sweep_params['FSTART']}"
-            )
-        if sweep_params.get("FSTOP") is not None:
-            self.interface.write(
-                f"SOURce{channel}:FREQuency:STOP {sweep_params['FSTOP']}"
-            )
-        if sweep_params.get("TIME") is not None:
+        self.set_mode(channel,'sweep')
+        if sweep_params.get('FSTART') is not None:
+            self.interface.write(f"SOURce{channel}:FREQuency:STaRt {sweep_params['FSTART']}")
+        if sweep_params.get('FSTOP') is not None:
+            self.interface.write(f"SOURce{channel}:FREQuency:STOP {sweep_params['FSTOP']}")
+        if sweep_params.get('TIME') is not None:
             self.interface.write(f"SOURce{channel}:SWEEp:TIME {sweep_params['TIME']}")
-        if sweep_params.get("RTIME") is not None:
+        if sweep_params.get('RTIME') is not None:
             self.interface.write(f"SOURce{channel}:SWEEp:RTIMe {sweep_params['RTIME']}")
-        if sweep_params.get("HTIME_START") is not None:
-            self.interface.write(
-                f"SOURce{channel}:SWEEp:HTIMe:STaRt {sweep_params['HTIME_START']}"
-            )
-        if sweep_params.get("HTIME_STOP") is not None:
-            self.interface.write(
-                f"SOURce{channel}:SWEEp:HTIMe:STOP {sweep_params['HTIME_STOP']}"
-            )
+        if sweep_params.get('HTIME_START') is not None:
+            self.interface.write(f"SOURce{channel}:SWEEp:HTIMe:STaRt {sweep_params['HTIME_START']}")
+        if sweep_params.get('HTIME_STOP') is not None:
+            self.interface.write(f"SOURce{channel}:SWEEp:HTIMe:STOP {sweep_params['HTIME_STOP']}")
 
     def get_status(self, channel: int) -> str:
         status = []

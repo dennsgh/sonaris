@@ -484,6 +484,7 @@ class DG4202DefaultWidget(QWidget):
                 "HTIME_START": htime_start,
                 "HTIME_STOP": htime_stop,
             }
+            print(params)
             self.my_generator.set_sweep_parameters(channel, params)
             self.update_sweep_graph(channel)
 
