@@ -2,11 +2,11 @@ import json
 from datetime import datetime, timedelta
 from typing import Callable
 
-from header import DEVICE_LIST, TASK_USER_INTERFACE_DICTIONARY, get_tasks
+from features.tasks import TASK_USER_INTERFACE_DICTIONARY, get_tasks
+from header import DEVICE_LIST
 from pages import factory
 from PyQt6 import QtCore
 from PyQt6.QtWidgets import (
-    QApplication,
     QComboBox,
     QDateTimeEdit,
     QDialog,
@@ -16,9 +16,9 @@ from PyQt6.QtWidgets import (
     QHeaderView,
     QLabel,
     QLineEdit,
-    QListWidget,
     QMessageBox,
     QPushButton,
+    QSizePolicy,
     QSplitter,
     QTableWidget,
     QTableWidgetItem,
@@ -28,6 +28,7 @@ from PyQt6.QtWidgets import (
 from widgets.parameters import ParameterConfiguration
 
 from scheduler.timekeeper import Timekeeper
+from utils import logging as logutils
 
 
 class SchedulerWidget(QWidget):
@@ -164,38 +165,30 @@ class SchedulerWidget(QWidget):
             print("No job selected")
 
     def update_finished_jobs_list(self):
-        # Clear the existing rows in the table
-        self.finishedJobsTable.setRowCount(0)
-        try:
-            with self.timekeeper.archive.open("r") as file:
-                finished_jobs = json.load(file)
+        self.finishedJobsTable.setRowCount(0)  # Clear the existing rows in the table
+        finished_jobs = logutils.load_json_with_backup(self.timekeeper.archive)
 
-            for job_id, job_info in finished_jobs.items():
-                # Determine the row number where the new row will be inserted (i.e., the end of the table)
-                row_position = self.finishedJobsTable.rowCount()
-                # Insert a new row at this position
-                self.finishedJobsTable.insertRow(row_position)
+        for job_id, job_info in finished_jobs.items():
+            row_position = self.finishedJobsTable.rowCount()
+            self.finishedJobsTable.insertRow(row_position)
 
-                # Create table items for each piece of information
-                result_item = QTableWidgetItem("OK" if job_info["result"] else "ERR")
-                task_item = QTableWidgetItem(job_info["task"])
-                job_id_item = QTableWidgetItem(job_id)
-                result_item.setFlags(
-                    result_item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable
-                )
-                task_item.setFlags(
-                    task_item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable
-                )
-                job_id_item.setFlags(
-                    job_id_item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable
-                )
-                # Insert the items into the new row, in their respective columns
-                self.finishedJobsTable.setItem(row_position, 0, result_item)
-                self.finishedJobsTable.setItem(row_position, 1, task_item)
-                self.finishedJobsTable.setItem(row_position, 2, job_id_item)
+            result_item = QTableWidgetItem(
+                "OK" if job_info.get("result", False) else "ERR"
+            )
+            task_item = QTableWidgetItem(job_info.get("task", ""))
+            job_id_item = QTableWidgetItem(job_id)
 
-        except FileNotFoundError:
-            pass
+            result_item.setFlags(
+                result_item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable
+            )
+            task_item.setFlags(task_item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable)
+            job_id_item.setFlags(
+                job_id_item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable
+            )
+
+            self.finishedJobsTable.setItem(row_position, 0, result_item)
+            self.finishedJobsTable.setItem(row_position, 1, task_item)
+            self.finishedJobsTable.setItem(row_position, 2, job_id_item)
 
     def clear_finished_jobs(self):
         # Confirmation message box
@@ -252,7 +245,9 @@ class JobConfigPopup(QDialog):
     def __init__(self, timekeeper: Timekeeper, _callback: Callable):
         super().__init__()
         self.resize(800, 320)
-        self.parameterConfig = ParameterConfiguration(self)
+        self.parameterConfig = ParameterConfiguration(
+            TASK_USER_INTERFACE_DICTIONARY, self
+        )
         self.timekeeper = timekeeper
         self.tasks = get_tasks()
         self._callback = _callback
@@ -487,13 +482,6 @@ class JobConfigPopup(QDialog):
                 milliseconds=int(self.durationInputs["milliseconds"].text()),
             )
             return datetime.now() + duration
-
-    def getParameters(self):
-        # to implement
-        return {}
-
-
-from PyQt6.QtWidgets import QSizePolicy
 
 
 class JobDetailsDialog(QDialog):

@@ -8,7 +8,8 @@ from typing import Dict, Optional
 import pyvisa
 import qdarktheme
 from features.managers import DG4202Manager, EDUX1002AManager, StateManager
-from header import OSCILLOSCOPE_BUFFER_SIZE, get_tasks
+from features.tasks import get_tasks
+from header import OSCILLOSCOPE_BUFFER_SIZE
 from pages import factory, general, monitor, scheduler, settings
 from PyQt6.QtGui import QGuiApplication, QIcon
 from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget, QWidget

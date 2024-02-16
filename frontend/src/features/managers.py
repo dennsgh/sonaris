@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pyvisa
+from utils import logging as logutils
 
 # Import classes and modules from device module as needed.
 from device.data import DataBuffer
@@ -32,15 +33,8 @@ class StateManager:
         self.birthdate = time.time()
 
     def read_state(self) -> dict:
-        try:
-            with open(self.json_file, "r") as f:
-                return json.load(f)
-        except FileNotFoundError:
-            logging.error("State file not found, returning default state.")
-            return self.default_state()
-        except json.JSONDecodeError:
-            logging.error("Invalid JSON format in state file, returning default state.")
-            return self.default_state()
+        # Utilize the load_json_with_backup utility function
+        return logutils.load_json_with_backup(self.json_file) or self.default_state()
 
     def write_state(self, state: dict):
         existing_state = self.read_state()
