@@ -207,10 +207,10 @@ TASK_USER_INTERFACE_DICTIONARY = {
         TaskName.EDUX1002A_AUTO.value: [
             {
                 "type": "QComboBox",
-                "label": "kwarg_value",
-                "kwarg_label": "kwarg_value",
-                "options": ["Press", "NoPress"],
-                "data_type": "str",
+                "label": "Autoscale",
+                "kwarg_label": "this is an example, this should match the kwarg on the task function",
+                "options": ["True", "False"],
+                "data_type": "bool",
             },
         ],
     },
