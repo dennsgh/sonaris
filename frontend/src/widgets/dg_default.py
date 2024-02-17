@@ -95,23 +95,6 @@ class DG4202DefaultWidget(QWidget):
         self.setLayout(self.main_layout)
 
     def generate_main_controls(self, channel: int) -> QWidget:
-        # Setting up Timer Modal (Dialog)
-        timer_modal = QDialog(self)
-        timer_modal.setWindowTitle("Timer")
-
-        timer_layout = QVBoxLayout()
-
-        duration_layout = QHBoxLayout()
-        duration_layout.addWidget(QLabel("Duration"))
-        duration_input = QLineEdit()
-        duration_layout.addWidget(duration_input)
-
-        timer_units = QComboBox()
-        timer_units.addItems(["ms", "s", "m", "h"])
-        duration_layout.addWidget(timer_units)
-        timer_layout.addLayout(duration_layout)
-
-        timer_modal.setLayout(timer_layout)
 
         # Setting up main layout
         main_layout = QVBoxLayout()
@@ -127,10 +110,6 @@ class DG4202DefaultWidget(QWidget):
         )
         self.update_button_state(channel)
         control_layout.addWidget(self.input_objects[channel]["TOGGLE_OUTPUT"])
-
-        timer_btn = QPushButton(f"Timer CH{channel}")
-        timer_btn.clicked.connect(timer_modal.exec)
-        control_layout.addWidget(timer_btn)
 
         main_layout.addLayout(control_layout)
 

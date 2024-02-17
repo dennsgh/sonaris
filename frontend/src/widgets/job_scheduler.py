@@ -48,11 +48,6 @@ class SchedulerWidget(QWidget):
         leftWidget = QWidget()
         leftLayout = QVBoxLayout(leftWidget)
 
-        # DateTime picker for scheduling tasks
-        self.dateTimeEdit = QDateTimeEdit(leftWidget)
-        self.dateTimeEdit.setDateTime(datetime.now())
-        leftLayout.addWidget(self.dateTimeEdit)
-
         # Label and table for displaying current jobs
         self.jobsLabel = QLabel("Current Jobs:", leftWidget)
         leftLayout.addWidget(self.jobsLabel)
