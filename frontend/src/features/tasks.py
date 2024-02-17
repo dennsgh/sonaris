@@ -19,7 +19,7 @@ class TaskName(Enum):
 
 
 def task_on_off_dg4202(channel: int, status: bool) -> bool:
-    factory.dg4202_manager.get_device().output_on_off(channel=channel, status=status)
+    factory.dg4202_manager.device.output_on_off(channel=channel, status=status)
     return True
 
 
@@ -31,7 +31,7 @@ def task_set_waveform_parameters(
     frequency: float,
     offset: float,
 ) -> bool:
-    factory.dg4202_manager.get_device().set_waveform(
+    factory.dg4202_manager.device.set_waveform(
         channel=channel,
         waveform_type=waveform_type,
         amplitude=amplitude,
@@ -40,7 +40,7 @@ def task_set_waveform_parameters(
         offset=offset,
     )
     if send_on:
-        factory.dg4202_manager.get_device().output_on_off(channel, True)
+        factory.dg4202_manager.device.output_on_off(channel, True)
     return True
 
 
@@ -62,17 +62,17 @@ def task_set_sweep_parameters(
         "HTIME_START": htime_start,
         "HTIME_STOP": htime_stop,
     }
-    factory.dg4202_manager.get_device().set_sweep_parameters(
+    factory.dg4202_manager.device.set_sweep_parameters(
         channel=channel, sweep_params=params
     )
     if send_on:
-        factory.dg4202_manager.get_device().output_on_off(channel, True)
+        factory.dg4202_manager.device.output_on_off(channel, True)
     return True
 
 
 def task_auto_edux1002a(*args, **kwargs):
     # for testing, kwarg_value means nothing
-    factory.edux1002a_manager.get_device().autoscale()
+    factory.edux1002a_manager.device.autoscale()
     return True
 
 

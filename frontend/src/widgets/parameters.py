@@ -1,59 +1,101 @@
-from PyQt6.QtWidgets import QComboBox, QLabel, QLineEdit, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import (
+    QComboBox,
+    QLabel,
+    QLineEdit,
+    QStackedWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
 
 class ParameterConfiguration(QWidget):
     def __init__(self, task_dictionary, parent=None):
         super().__init__(parent)
-        self.main_layout = QVBoxLayout(self)
         self.task_dictionary = task_dictionary
-        self.widget_cache = {}  # Adjusted to cache widgets explicitly
+        self.widget_cache = {}  # Cache for configurations
+        self.stacked_widget = QStackedWidget(self)  # Use QStackedWidget to manage UIs
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.addWidget(
+            self.stacked_widget
+        )  # Add the stacked widget to the main layout
 
     def updateUI(self, device, task_name):
-        if (device, task_name) in self.widget_cache:
-            print(f"Showing {device} - {task_name}")
-            self.show_cached_ui(device, task_name)
-        else:
+        cache_key = (device, task_name)
+        if cache_key not in self.widget_cache:
             print(f"Creating {device} - {task_name}")
             spec = self.task_dictionary.get(device, {}).get(task_name, [])
-            self.clear_ui()  # Ensure the UI is clear before generating new widgets
-            widgets = self.generateUI(spec)
-            self.widget_cache[f"({device}, {task_name})"] = widgets
+            container_widget = self.generateUI(spec)
+            self.widget_cache[cache_key] = container_widget
+            self.stacked_widget.addWidget(
+                container_widget
+            )  # Add new configuration to stacked widget
+
+        # Switch to the relevant configuration
+        self.stacked_widget.setCurrentWidget(self.widget_cache[cache_key])
+
+    def createComponent(self, component, layout):
+        # Adjust this method to add widgets to the passed layout
+        if component["type"] == "QComboBox":
+            comboBox = QComboBox(self)
+            options = component.get("options", [])
+            comboBox.addItems(options)
+            if "default" in component:
+                default_index = (
+                    options.index(component["default"])
+                    if component["default"] in options
+                    else 0
+                )
+                comboBox.setCurrentIndex(default_index)
+            layout.addWidget(QLabel(component["label"]))  # Add to the passed layout
+            layout.addWidget(comboBox)  # Add to the passed layout
+        elif component["type"] == "QLineEdit":
+            lineEdit = QLineEdit(self)
+            if "default" in component:
+                lineEdit.setText(str(component["default"]))
+            layout.addWidget(QLabel(component["label"]))  # Add to the passed layout
+            layout.addWidget(lineEdit)  # Add to the passed layout
+        # Implement other component types as needed
 
     def generateUI(self, spec):
-        widgets = []  # Store created widgets in a list
+        container = QWidget()  # Container for this set of parameters
+        layout = QVBoxLayout(container)
+
         for component in spec:
-            widget = self.createComponent(component)
-            if widget:  # Check if widget is not None
-                widgets.append(widget)  # Append the created widget to the list
-                self.layout.addWidget(widget)  # Add widget to the layout
-        return widgets  # Return the list of created widgets
+            self.createComponent(
+                component, layout
+            )  # Pass the layout to createComponent
 
-    def show_cached_ui(self, device, task_name):
-        self.clear_ui()  # Clear the layout before showing cached UI
-        cached_widgets = self.widget_cache.get(f"({device},{task_name})", [])
-        for widget in cached_widgets:
-            if widget:  # Check if widget is not None
-                self.main_layout.addWidget(widget)
-                widget.setVisible(True)  # Ensure the widget is visible
-
-    def clear_ui(self):
-        for i in range(self.main_layout.count()):
-            widget = self.main_layout.itemAt(i).widget()
-            if widget:
-                widget.setVisible(False)
+        container.setLayout(layout)
+        return container
 
     def get_parameters(self, task_spec):
         parameters = {}
+        current_container = (
+            self.stacked_widget.currentWidget()
+        )  # Get the currently visible container
+        if not current_container:
+            return parameters  # Return empty if no container is visible
+
         for spec in task_spec:
             kwarg_label = spec.get("kwarg_label", spec.get("label"))
-            # Iterate through the layout to find the widget corresponding to the kwarg_label
-            for i in range(self.main_layout.count()):
-                widget = self.main_layout.itemAt(i).widget()
+            # Now iterate through the current container's layout to find the widget
+            layout = current_container.layout()
+            for i in range(layout.count()):
+                layout_item = layout.itemAt(i)
+                widget = layout_item.widget()
                 if isinstance(widget, QLabel) and widget.text() == spec["label"]:
-                    input_widget = self.main_layout.itemAt(i + 1).widget()
-                    value = self.extract_value(input_widget, spec)
-                    parameters[kwarg_label] = value
-                    break
+                    # Assuming input widget is next in the layout after its label
+                    input_widget = (
+                        layout.itemAt(i + 1).widget()
+                        if i + 1 < layout.count()
+                        else None
+                    )
+                    if input_widget:
+                        value = self.extract_value(input_widget, spec)
+                        if value is not None:  # Only add if extraction was successful
+                            parameters[kwarg_label] = value
+                    break  # Break after finding the widget to avoid unnecessary iterations
+
         return parameters
 
     def extract_value(self, widget, spec):
@@ -84,28 +126,3 @@ class ParameterConfiguration(QWidget):
             return value.lower() in ["on", "true", "1"]
         else:
             return value
-
-    def createComponent(self, component):
-
-        # Handling for QComboBox
-        if component["type"] == "QComboBox":
-            comboBox = QComboBox(self)
-            options = component.get("options", [])
-            comboBox.addItems(options)
-            if "default" in component:
-                default_index = (
-                    options.index(component["default"])
-                    if component["default"] in options
-                    else 0
-                )
-                comboBox.setCurrentIndex(default_index)
-            self.main_layout.addWidget(QLabel(component["label"]))
-            self.main_layout.addWidget(comboBox)
-        # Handling for QLineEdit
-        elif component["type"] == "QLineEdit":
-            lineEdit = QLineEdit(self)
-            if "default" in component:
-                lineEdit.setText(str(component["default"]))
-            self.main_layout.addWidget(QLabel(component["label"]))
-            self.main_layout.addWidget(lineEdit)
-        # Additional component types can be added here
