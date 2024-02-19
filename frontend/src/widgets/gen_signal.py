@@ -2,12 +2,11 @@ from datetime import datetime
 
 import pyqtgraph as pg
 from features.managers import DG4202Manager
-from header import DEFAULT_TAB_STYLE, NOT_FOUND_STRING, TICK_INTERVAL
+from header import NOT_FOUND_STRING
 from pages import plotter
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QComboBox,
-    QDialog,
     QFormLayout,
     QHBoxLayout,
     QLabel,

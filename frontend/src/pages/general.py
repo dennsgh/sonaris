@@ -2,9 +2,9 @@ from typing import Callable
 
 from features.managers import DG4202Manager, EDUX1002AManager
 from header import TICK_INTERVAL
-from PyQt6.QtWidgets import QLabel, QTabWidget, QVBoxLayout
-from widgets.gen_signal import DG4202DefaultWidget
+from PyQt6.QtWidgets import QLabel, QTabWidget, QVBoxLayout, QWidget
 from widgets.gen_oscilloscope import OscilloscopeWidget
+from widgets.gen_signal import DG4202DefaultWidget
 from widgets.templates import BasePage
 
 
@@ -40,17 +40,10 @@ class GeneralPage(BasePage):
         self.status_label = QLabel("")
         self.main_layout.addWidget(self.status_label)
 
-        # Create the tab widget
-        self.tab_widget = QTabWidget()
-
-        # Default Widget Tab
         self.default_widget = DG4202DefaultWidget(
             self.dg4202_manager, self, self.args_dict
         )
-        self.tab_widget.addTab(self.default_widget, "Default Mode")
-
-        # Adding the tab widget to the main layout
-        self.main_layout.addWidget(self.tab_widget)
+        self.main_layout.addWidget(self.default_widget)
 
         self.setLayout(self.main_layout)
 
