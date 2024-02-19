@@ -3,7 +3,6 @@ import os
 from datetime import datetime
 from pathlib import Path
 from typing import Dict
-from utils import logging as logutils
 
 from features.managers import DeviceManagerBase
 from PyQt6 import QtCore
@@ -11,7 +10,6 @@ from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
-    QLabel,
     QListWidget,
     QMessageBox,
     QPushButton,
@@ -21,6 +19,8 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+from utils import logging as logutils
 
 
 class DeviceMonitorWidget(QWidget):
@@ -78,16 +78,14 @@ class DeviceMonitorWidget(QWidget):
         self.refresh_timer.timeout.connect(self.update_device_statuses)
         self.refresh_timer.start(1000)  # Refresh every 1 second
 
-
     def load_event_log(self):
-        
+
         event_log = logutils.load_json_with_backup(self.monitor_logs)
 
         for event in event_log:
             self.event_log_list.addItem(
                 f"[{event['timestamp']}] - {event['description']}"
             )
-
 
     def clear_event_log(self):
         # Confirmation message box

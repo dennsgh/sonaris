@@ -4,8 +4,8 @@ from typing import Callable, Dict
 
 from features.managers import DeviceManagerBase
 from PyQt6.QtWidgets import QVBoxLayout
-from widgets.mock_settings import MockHardwareWidget
-from widgets.settings_state import SettingsStateWidget
+from widgets.set_mock import MockHardwareWidget
+from widgets.set_state import SettingsStateWidget
 from widgets.templates import BasePage
 
 

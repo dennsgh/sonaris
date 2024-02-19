@@ -8,7 +8,6 @@ from pages import factory
 from PyQt6 import QtCore
 from PyQt6.QtWidgets import (
     QComboBox,
-    QDateTimeEdit,
     QDialog,
     QGridLayout,
     QGroupBox,
@@ -25,7 +24,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from widgets.parameters import ParameterConfiguration
+from widgets.sch_parameters import ParameterConfiguration
 
 from scheduler.timekeeper import Timekeeper
 from utils import logging as logutils

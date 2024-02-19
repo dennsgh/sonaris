@@ -2,7 +2,7 @@ from typing import Callable
 
 from pages import factory
 from PyQt6.QtWidgets import QVBoxLayout
-from widgets.job_scheduler import SchedulerWidget
+from widgets.sch_scheduler import SchedulerWidget
 
 from scheduler.timekeeper import Timekeeper
 from widgets.templates import BasePage

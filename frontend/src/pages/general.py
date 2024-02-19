@@ -3,8 +3,8 @@ from typing import Callable
 from features.managers import DG4202Manager, EDUX1002AManager
 from header import TICK_INTERVAL
 from PyQt6.QtWidgets import QLabel, QTabWidget, QVBoxLayout
-from widgets.dg_default import DG4202DefaultWidget
-from widgets.oscilloscope import OscilloscopeWidget
+from widgets.gen_signal import DG4202DefaultWidget
+from widgets.gen_oscilloscope import OscilloscopeWidget
 from widgets.templates import BasePage
 
 
