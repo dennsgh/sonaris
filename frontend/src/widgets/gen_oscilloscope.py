@@ -221,10 +221,10 @@ class OscilloscopeWidget(QWidget):
 
     def update_channel_button_styles(self):
         if self.active_channel == 1:
-            self.channel1_button.setStyleSheet("background-color: yellow")
+            self.channel1_button.setStyleSheet("background-color: white")
             self.channel2_button.setStyleSheet("")
         else:
-            self.channel2_button.setStyleSheet("background-color: yellow")
+            self.channel2_button.setStyleSheet("background-color: white")
             self.channel1_button.setStyleSheet("")
 
     def set_active_channel(self, channel: int):
