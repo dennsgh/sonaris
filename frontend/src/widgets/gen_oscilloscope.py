@@ -4,6 +4,7 @@ import header
 import numpy as np
 import pyqtgraph as pg
 from features.managers import EDUX1002AManager
+from header import TICK_INTERVAL
 from PyQt6.QtWidgets import (
     QApplication,
     QDoubleSpinBox,
@@ -20,7 +21,10 @@ from device.edux1002a import EDUX1002ADetector
 
 class OscilloscopeWidget(QWidget):
     def __init__(
-        self, edux1002a_manager: EDUX1002AManager, parent=None, tick: int = 100
+        self,
+        edux1002a_manager: EDUX1002AManager,
+        parent=None,
+        tick: int = TICK_INTERVAL,
     ):
         super().__init__(parent)
         self.edux1002a_manager = edux1002a_manager

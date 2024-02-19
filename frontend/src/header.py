@@ -13,6 +13,6 @@ class DeviceName(Enum):
 
 DEVICE_LIST = [DeviceName.DG4202.value, DeviceName.EDUX1002A.value]
 NOT_FOUND_STRING = "Device not found!"
-TICK_INTERVAL = 1000.0  # in ms
+TICK_INTERVAL = 500.0  # in ms
 
 DEFAULT_TAB_STYLE = {"height": "30px", "padding": "2px"}
