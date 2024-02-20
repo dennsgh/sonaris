@@ -17,6 +17,7 @@ PyVISA-py = "^0.7.1"
 yapf = "^0.40.2"
 apscheduler = "^3.10.4"
 pyqtgraph = "^0.13.3"
+pyyaml = "^6.0.1"
 
 
 [build-system]

@@ -1,8 +1,15 @@
+import yaml
+from features.tasks import TASK_LIST_DICTIONARY, TaskName
 from PyQt6.QtWidgets import (
+    QAbstractItemView,
     QComboBox,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QStackedWidget,
+    QTableWidget,
+    QTableWidgetItem,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
@@ -126,3 +133,161 @@ class ParameterConfiguration(QWidget):
             return value.lower() in ["on", "true", "1"]
         else:
             return value
+
+
+class ExperimentConfiguration(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.main_layout = QVBoxLayout(self)
+        self.config = None  # Hold the loaded YAML config
+        self.experimentDescriptionWidget = QTextEdit(self)
+        self.experimentDescriptionWidget.setReadOnly(True)
+        self.parameters = {}
+        self.initUI()
+
+    def initUI(self):
+        # Initial setup, possibly with a placeholder text
+        self.experimentDescriptionWidget.setText(
+            "Load an experiment configuration to see its details here."
+        )
+        self.main_layout.addWidget(self.experimentDescriptionWidget)
+        # Add a table to display the parameters
+        self.parametersTable = QTableWidget(self)
+        self.parametersTable.setColumnCount(2)  # For parameter name and value
+        self.parametersTable.setHorizontalHeaderLabels(["Parameter", "Value"])
+        self.parametersTable.setEditTriggers(
+            QAbstractItemView.EditTrigger.NoEditTriggers
+        )  # Make the table read-only in PyQt6
+
+        self.main_layout.addWidget(self.parametersTable)
+        self.main_layout.addWidget(self.experimentDescriptionWidget)
+
+    def get_experiment(self):
+        # Assuming the experiment is defined at the root of the YAML file
+        return self.config.get("experiment", {})
+
+    def get_experiment_steps(self):
+        experiment = self.get_experiment()
+        return experiment.get("steps", [])
+
+    def updateUI(self, parameters):
+        container = QWidget()
+        layout = QVBoxLayout(container)
+
+        for param in parameters:
+            if param["type"] == "QComboBox":
+                comboBox = QComboBox(container)
+                options = param.get("options", [])
+                comboBox.addItems(options)
+                layout.addWidget(QLabel(param["label"], container))
+                layout.addWidget(comboBox)
+            elif param["type"] == "QLineEdit":
+                lineEdit = QLineEdit(container)
+                layout.addWidget(QLabel(param["label"], container))
+                layout.addWidget(lineEdit)
+
+        container.setLayout(layout)
+        return container
+
+    def loadConfiguration(self, config_path):
+        """Loads and parses the YAML configuration file."""
+        try:
+            with open(config_path, "r") as file:
+                self.config = yaml.safe_load(file)
+
+            valid, message = self.validate_configuration()
+            if not valid:
+                QMessageBox.warning(self, "Configuration Validation Failed", message)
+                self.experimentDescriptionWidget.setText(
+                    "Configuration validation failed:\n" + message
+                )
+                return
+
+            self.displayExperimentDetails()
+        except Exception as e:
+            QMessageBox.critical(
+                self, "Error", f"Failed to load or parse the configuration: {str(e)}"
+            )
+            self.experimentDescriptionWidget.setText(
+                "Failed to load or parse the configuration."
+            )
+
+    def displayExperimentDetails(self):
+        """Updates the UI to display details about the loaded experiment."""
+        if not self.config:
+            self.experimentDescriptionWidget.setText(
+                "Failed to load or parse the configuration."
+            )
+            return
+
+        self.populateParametersTable()
+
+    def populateParametersTable(self):
+        steps = self.get_experiment_steps()
+        self.parametersTable.setRowCount(0)  # Clear the table first
+
+        for step in steps:
+            for parameter in step.get("parameters", []):
+                for param, value in parameter.items():
+                    row_position = self.parametersTable.rowCount()
+                    self.parametersTable.insertRow(row_position)
+                    self.parametersTable.setItem(
+                        row_position, 0, QTableWidgetItem(str(param))
+                    )
+                    self.parametersTable.setItem(
+                        row_position, 1, QTableWidgetItem(str(value))
+                    )
+
+        self.parametersTable.resizeColumnsToContents()
+
+        # Assuming the experiment details are to be presented in a human-readable format
+        details = "Experiment Overview:\n"
+        experiment = self.config.get("experiment", {})
+        steps = experiment.get("steps", [])
+
+        for i, step in enumerate(steps, start=1):
+            details += (
+                f"\nStep {i}: {step.get('description', 'No description provided.')}"
+            )
+            # Parameters are a list of dictionaries; iterate accordingly
+            for parameter in step.get(
+                "parameters", []
+            ):  # Now it correctly handles a list
+                for param, value in parameter.items():  # parameter is a dictionary
+                    details += f"\n - {param}: {value}"
+
+        self.experimentDescriptionWidget.setText(details)
+
+    def validate_configuration(self):
+        if not self.config:
+            return False, "No configuration loaded."
+
+        valid = True
+        error_messages = []
+
+        steps = self.get_experiment_steps()
+        for step in steps:
+            task_name_str = step.get("task")
+            task_name_enum = TaskName.get_task_name_enum(task_name_str)
+            if task_name_enum is None:
+                valid = False
+                error_messages.append(
+                    f"Task '{task_name_str}' does not match any TaskName enum."
+                )
+                continue
+
+            # Now, find which device supports this task
+            task_supported = False
+            for device, tasks in TASK_LIST_DICTIONARY.items():
+                if task_name_enum.value in tasks:
+                    task_supported = True
+                    # Further validation for parameters can be performed here
+                    break
+
+            if not task_supported:
+                valid = False
+                error_messages.append(
+                    f"Task '{task_name_str}' is not supported by any device."
+                )
+
+        return valid, "\n".join(error_messages)

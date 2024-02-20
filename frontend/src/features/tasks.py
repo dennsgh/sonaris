@@ -17,6 +17,13 @@ class TaskName(Enum):
     DG4202_SET_SWEEP = "Set Sweep Parameters"
     EDUX1002A_AUTO = "Press Auto"
 
+    @staticmethod
+    def get_task_name_enum(task_name_str):
+        try:
+            return TaskName[task_name_str]
+        except KeyError:
+            return None
+
 
 def task_on_off_dg4202(channel: int, status: bool) -> bool:
     factory.dg4202_manager.device.output_on_off(channel=channel, status=status)
@@ -89,8 +96,6 @@ TASK_LIST_DICTIONARY = {
     DeviceName.EDUX1002A.value: {TaskName.EDUX1002A_AUTO.value: task_auto_edux1002a},
 }
 
-
-# These refer to header.py for uniformity!
 TASK_USER_INTERFACE_DICTIONARY = {
     DeviceName.DG4202.value: {
         TaskName.DG4202_TOGGLE.value: [

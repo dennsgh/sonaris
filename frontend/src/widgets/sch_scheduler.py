@@ -1,7 +1,9 @@
 import json
+import os
 from datetime import datetime, timedelta
 from typing import Callable
 
+import yaml
 from features.tasks import TASK_USER_INTERFACE_DICTIONARY, get_tasks
 from header import DEVICE_LIST
 from pages import factory
@@ -9,6 +11,7 @@ from PyQt6 import QtCore
 from PyQt6.QtWidgets import (
     QComboBox,
     QDialog,
+    QFileDialog,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
@@ -19,12 +22,13 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QSizePolicy,
     QSplitter,
+    QStackedWidget,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
-from widgets.sch_parameters import ParameterConfiguration
+from widgets.sch_parameters import ExperimentConfiguration, ParameterConfiguration
 
 from scheduler.timekeeper import Timekeeper
 from utils import logging as logutils
@@ -34,7 +38,10 @@ class SchedulerWidget(QWidget):
     def __init__(self, timekeeper: Timekeeper = None, root_callback: Callable = None):
         super().__init__()
         self.timekeeper = timekeeper or factory.timekeeper
-        self.popup = JobConfigPopup(self.timekeeper, self.popup_callback)
+        self.job_popup = JobConfigPopup(self.timekeeper, self.popup_callback)
+        self.experiment_popup = ExperimentConfigPopup(
+            self.timekeeper, self.popup_callback
+        )
         self.timekeeper.set_callback(self.popup_callback)
         self.root_callback = root_callback
         self.initUI()
@@ -66,6 +73,13 @@ class SchedulerWidget(QWidget):
         self.configureJobButton = QPushButton("Schedule Task", leftWidget)
         self.configureJobButton.clicked.connect(self.open_job_config_popup)
         leftLayout.addWidget(self.configureJobButton)
+
+        # Button to configure a job
+        self.configureExperimentButton = QPushButton("Run Experiment", leftWidget)
+        self.configureExperimentButton.clicked.connect(
+            self.open_experiment_config_popup
+        )
+        leftLayout.addWidget(self.configureExperimentButton)
 
         self.removeJobButton = QPushButton("Remove Selected Job", leftWidget)
         self.removeJobButton.clicked.connect(self.remove_selected_job)
@@ -207,7 +221,10 @@ class SchedulerWidget(QWidget):
                 QMessageBox.critical(self, "Error", "Could not clear the archive.")
 
     def open_job_config_popup(self):
-        self.popup.exec()
+        self.job_popup.exec()
+
+    def open_experiment_config_popup(self):
+        self.experiment_popup.exec()
 
     def popup_callback(self):
         self.update_jobs_table()
@@ -476,6 +493,96 @@ class JobConfigPopup(QDialog):
                 milliseconds=int(self.durationInputs["milliseconds"].text()),
             )
             return datetime.now() + duration
+
+
+class ExperimentConfigPopup(QDialog):
+    def __init__(self, timekeeper: Timekeeper, _callback: Callable, parent=None):
+        super().__init__(parent)
+        self.timekeeper = timekeeper
+        self._callback = _callback
+        self.experiment_config = ExperimentConfiguration()
+        self.initUI()
+        self.showDefaultMessage()
+
+    def initUI(self):
+        self.layout = QVBoxLayout(self)
+
+        self.loadConfigButton = QPushButton("Load Configuration", self)
+        self.loadConfigButton.clicked.connect(self.loadConfigurationDialog)
+        self.layout.addWidget(self.loadConfigButton)
+
+        self.parametersStack = QStackedWidget(self)
+        self.layout.addWidget(self.parametersStack)
+
+        self.runButton = QPushButton("Run Experiment", self)
+        self.runButton.clicked.connect(self.runExperiment)
+        self.runButton.setEnabled(False)  # Disabled until a valid config is loaded
+        self.layout.addWidget(self.runButton)
+
+        self.showDefaultMessage()
+
+    def showDefaultMessage(self):
+        # Default message prompting user to load a configuration file
+        defaultMsgWidget = QLabel("Please load a configuration file to begin.", self)
+        self.parametersStack.addWidget(defaultMsgWidget)
+        self.parametersStack.setCurrentWidget(defaultMsgWidget)
+
+    def loadConfigurationDialog(self):
+        fileName, _ = QFileDialog.getOpenFileName(
+            self, "Load Configuration File", "", "YAML Files (*.yaml);;All Files (*)"
+        )
+        if fileName:
+            self.loadConfiguration(fileName)
+
+    def loadConfiguration(self, config_path):
+        try:
+            # Assuming this does not take config_path as a parameter
+            self.experiment_config.loadConfiguration(
+                config_path
+            )  # Load and validate within this method
+
+            # Check if configuration is valid before enabling the run button
+            valid, _ = self.experiment_config.validate_configuration()
+            self.runButton.setEnabled(valid)
+
+            if not valid:
+                self.showDefaultMessage()
+                return
+            self.experiment_config.updateUI()
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Configuration Load Failed",
+                f"Failed to load configuration: {str(e)}",
+            )
+            self.showDefaultMessage()
+
+    def runExperiment(self):
+        steps = self.experiment_config.get_experiment_steps()
+        schedule_time = datetime.now()  # Start scheduling from the current time
+
+        for step in steps:
+            task_name = step["task"]
+            # Extract parameters from the step, assuming parameters are wrapped in a list
+            params = step["parameters"][0] if step["parameters"] else {}
+            # Schedule the task and calculate the next task's start time based on the duration
+            schedule_time = self.schedule_experiment_step(
+                task_name, schedule_time, **params
+            )
+
+    def schedule_experiment_step(self, task_name, schedule_time, **kwargs):
+        # Extract the duration and calculate the end time of this task
+        duration = kwargs.pop("duration", 10)  # Default to 10 seconds if not specified
+        end_time = schedule_time + timedelta(seconds=duration)
+
+        # Schedule the task
+        job_id = self.timekeeper.add_job(
+            task_name=task_name, schedule_time=schedule_time, **kwargs
+        )
+        print(f"Scheduled {task_name} with job ID {job_id} for {duration} seconds")
+
+        # Return the calculated end time, which will be the start time for the next task
+        return end_time
 
 
 class JobDetailsDialog(QDialog):
