@@ -18,11 +18,17 @@ class TaskName(Enum):
     EDUX1002A_AUTO = "Press Auto"
 
     @staticmethod
-    def get_task_name_enum(task_name_str):
+    def get_name_enum(task_name_str):
+        # First, try looking up by name
         try:
             return TaskName[task_name_str]
         except KeyError:
-            return None
+            pass
+        # Next, try looking up by value
+        for _, member in TaskName.__members__.items():
+            if member.value == task_name_str:
+                return member
+        return None
 
 
 def task_on_off_dg4202(channel: int, status: bool) -> bool:
@@ -222,11 +228,12 @@ TASK_USER_INTERFACE_DICTIONARY = {
 }
 
 
-def get_tasks() -> dict:
+def get_tasks(flatten:bool=False) -> dict:
     """Returns the dict of { device : { task-name : func_pointer , ..} ..}
 
     Returns:
         dict: dictionary containing devices and its tasks.
     """
-
+    if flatten:
+        return {inner_key: value for outer_dict in TASK_LIST_DICTIONARY.values() for inner_key, value in outer_dict.items()}
     return TASK_LIST_DICTIONARY

@@ -1,15 +1,22 @@
+from enum import Enum
+from typing import Callable, Dict
+
 import yaml
 from features.task_validator import validate_configuration
-from features.tasks import TASK_LIST_DICTIONARY, TaskName
 from PyQt6.QtWidgets import (
     QAbstractItemView,
+    QCheckBox,
     QComboBox,
+    QFormLayout,
     QLabel,
     QLineEdit,
     QMessageBox,
+    QPushButton,
+    QSpinBox,
     QStackedWidget,
     QTableWidget,
     QTableWidgetItem,
+    QTabWidget,
     QTextEdit,
     QVBoxLayout,
     QWidget,
@@ -137,16 +144,59 @@ class ParameterConfiguration(QWidget):
 
 
 class ExperimentConfiguration(QWidget):
-    def __init__(self, parent=None, task_functions=None):
+    def __init__(
+        self,
+        parent=None,
+        task_functions: Dict[str, Callable] = None,
+        task_enum: Enum = None,
+    ):
         super().__init__(parent)
-        self.task_functions = (
-            task_functions  # Dictionary mapping task names to functions
-        )
+        self.task_functions =   task_functions  
+        
         self.config: dict = None
         self.initUI()
+        self.task_enum = task_enum
+    def createTaskForm(self, task):
+        formWidget = QWidget()
+        formLayout = QFormLayout()
+        formWidget.setLayout(formLayout)
+
+        for param, value in task.get("parameters", [{}])[0].items():
+            if isinstance(value, bool):
+                checkBox = QCheckBox()
+                checkBox.setChecked(value)
+                formLayout.addRow(QLabel(param), checkBox)
+            elif isinstance(value, int):
+                spinBox = QSpinBox()
+                spinBox.setValue(value)
+                formLayout.addRow(QLabel(param), spinBox)
+            # Add more widgets for different data types as needed
+
+        return formWidget
+
+    def addValidation(self, lineEdit):
+        lineEdit.textChanged.connect(self.validateInput)
+
+    def addHelpButton(self, paramName, formLayout, row):
+        helpBtn = QPushButton("?")
+        helpBtn.clicked.connect(lambda: self.showParamHelp(paramName))
+        formLayout.setWidget(row, QFormLayout.ItemRole.FieldRole, helpBtn)
+
+    def showParamHelp(self, paramName):
+        # Show a QMessageBox with information about the parameter
+        QMessageBox.information(self, "Parameter Help", f"Help for {paramName}")
+
+    def validateInput(self, text):
+        # Dummy validation logic
+        if not text:
+            self.setStyleSheet("border: 1px solid red;")
+        else:
+            self.setStyleSheet("")
 
     def initUI(self):
         self.layout = QVBoxLayout(self)
+        self.tabWidget = QTabWidget(self)
+        self.layout.addWidget(self.tabWidget)
         self.descriptionWidget = QTextEdit(self)
         self.descriptionWidget.setReadOnly(True)
         self.descriptionWidget.setText(
@@ -172,17 +222,34 @@ class ExperimentConfiguration(QWidget):
             QMessageBox.warning(self, "Error", "No configuration loaded.")
             return
 
-        message = "Configuration is invalid"
-        if validate_configuration(self.config, self.task_functions):
-            message = "OK"
-        else:
-            QMessageBox.warning(self, "Configuration Validation Failed", message)
-            self.descriptionWidget.setText(
-                "Configuration validation failed:\n" + message
-            )
-            return
+        # Perform validation
+        validation_results = validate_configuration(
+            self.config, self.task_functions, self.task_enum
+        )
 
-        self.displayExperimentDetails()
+        # Initialize a flag to track overall validation status
+        overall_valid = True
+        messages = []
+
+        # Process validation results
+        for task_name, is_valid, message in validation_results:
+            if not is_valid:
+                overall_valid = False
+                messages.append(f"{task_name}: {message}")
+
+        # Update UI based on validation results
+        if not overall_valid:
+            QMessageBox.warning(
+                self, "Configuration Validation Failed", "\n".join(messages)
+            )
+            self.descriptionWidget.setText(
+                "Configuration validation failed:\n" + "\n".join(messages)
+            )
+        else:
+            self.displayExperimentDetails()
+
+        # Return the overall validation status and concatenated messages
+        return overall_valid, "\n".join(messages)
 
     def displayExperimentDetails(self):
         details = "Experiment Overview:\n"

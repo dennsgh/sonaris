@@ -1,4 +1,5 @@
 import inspect
+from enum import Enum
 from typing import Any, Callable, Dict, List, Tuple
 
 
@@ -86,16 +87,37 @@ def validate_task_parameters(
 
 
 def validate_configuration(
-    config: Dict[str, Any], task_functions: Dict[str, Callable]
+    config: Dict[str, Any], task_functions: Dict[str, Callable], task_enum: Enum = None
 ) -> List[Tuple[str, bool, str]]:
     results = []
     for step in config.get("experiment", {}).get("steps", []):
-        task_name = step.get("task")
+        task_name = str(step.get("task")).lower()
+        function_to_validate = None
+
+        # First, try to get the function directly by task_name
         if task_name in task_functions:
+            function_to_validate = task_functions[task_name]
+
+        # If not found and an Enum is provided, try matching against Enum names or values
+        elif task_enum:
+            matched = False
+            for enum_member in task_enum:
+                if str(enum_member.name).lower() == task_name or str(enum_member.value).lower() == task_name:
+                    print(f"Match found for {task_name} as {enum_member.name}")
+                    function_to_validate = task_functions.get(enum_member.value)
+                    matched = True
+                    break
+            if not matched:
+                print(f"No match found for {task_name} in Enum.")
+
+
+        # Proceed with validation if a matching function is found
+        if function_to_validate:
             is_valid, message = validate_task_parameters(
-                task_functions[task_name], step.get("parameters", [{}])[0]
+                function_to_validate, step.get("parameters", [{}])[0]
             )
             results.append((task_name, is_valid, message))
         else:
             results.append((task_name, False, "Task function not found."))
+
     return results

@@ -5,8 +5,8 @@ from typing import Callable
 
 import yaml
 from features.tasks import (
-    TASK_LIST_DICTIONARY,
     TASK_USER_INTERFACE_DICTIONARY,
+    TaskName,
     get_tasks,
 )
 from header import DEVICE_LIST
@@ -505,10 +505,16 @@ class ExperimentConfigPopup(QDialog):
         self.timekeeper = timekeeper
         self._callback = _callback
         self.experiment_config = ExperimentConfiguration(
-            self, TASK_LIST_DICTIONARY
-        )  # Pass self as parent
+            self, get_tasks(flatten=True), TaskName
+        )
         self.initUI()
         self.showDefaultMessage()
+
+    def merge_parameters(self, parameter_list):
+        merged_parameters = {}
+        for parameter_dict in parameter_list:
+            merged_parameters.update(parameter_dict)
+        return merged_parameters
 
     def initUI(self):
         self.setWindowTitle("Experiment Configuration")
@@ -570,33 +576,40 @@ class ExperimentConfigPopup(QDialog):
             self.showDefaultMessage()
 
     def accept(self):
-        """
-        Override the QDialog's accept method to schedule tasks based on the loaded configuration.
-        """
         steps = self.experiment_config.get_configuration()
+        duration = timedelta(seconds=0)
         for step in steps:
-            task_name = step.get("task")
-            parameters = step.get("parameters", [{}])[
-                0
-            ]  # Assuming parameters are provided in a list containing a single dict
-            schedule_time = (
-                datetime.now()
-            )  # This should be adjusted based on your scheduling logic
+            task_name_str = step.get("task")
+            task_enum = TaskName.get_name_enum(task_name_str)
+            if not task_enum:
+                QMessageBox.critical(
+                    self,
+                    "Error Scheduling Task",
+                    f"Unknown task name or value: '{task_name_str}'",
+                )
+                continue  # Skip this task and continue with the next
 
-            # Example: Adjust the call to match the signature of your timekeeper's scheduling method
+            parameters = step.get("parameters", [{}])[0]
+            step_duration = timedelta(step.get("duration", 0))
+            duration = duration + step_duration
+            schedule_time = datetime.now()  # Adjust as needed
+
             try:
+                # Assuming you have a method to handle scheduling by Enum member
                 self.timekeeper.add_job(
-                    task_name=task_name, schedule_time=schedule_time, **parameters
+                    task_name=task_enum.name,  # Use Enum name for scheduling
+                    schedule_time=schedule_time,
+                    **parameters,
                 )
             except Exception as e:
                 QMessageBox.critical(
                     self,
                     "Error Scheduling Task",
-                    f"An error occurred while scheduling '{task_name}': {str(e)}",
+                    f"An error occurred while scheduling '{task_enum.value}': {str(e)}",
                 )
-                return  # Stop scheduling further tasks if an error occurs
+                return
 
-        self._callback()  # Invoke the callback to refresh UI or perform other actions
+        self._callback()  # Refresh UI or other actions
         super().accept()
 
 

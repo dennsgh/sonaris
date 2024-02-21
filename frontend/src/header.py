@@ -11,11 +11,17 @@ class DeviceName(Enum):
     EDUX1002A = "EDUX1002A"
 
     @staticmethod
-    def get_task_name_enum(device_name_str):
+    def get_name_enum(device_name_str):
+        # First, try looking up by name
         try:
             return DeviceName[device_name_str]
         except KeyError:
-            return None
+            pass
+        # Next, try looking up by value
+        for _, member in DeviceName.__members__.items():
+            if member.value == device_name_str:
+                return member
+        return None
 
 
 DEVICE_LIST = [DeviceName.DG4202.value, DeviceName.EDUX1002A.value]
