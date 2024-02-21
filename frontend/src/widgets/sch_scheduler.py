@@ -4,7 +4,11 @@ from datetime import datetime, timedelta
 from typing import Callable
 
 import yaml
-from features.tasks import TASK_USER_INTERFACE_DICTIONARY, get_tasks
+from features.tasks import (
+    TASK_LIST_DICTIONARY,
+    TASK_USER_INTERFACE_DICTIONARY,
+    get_tasks,
+)
 from header import DEVICE_LIST
 from pages import factory
 from PyQt6 import QtCore
@@ -500,32 +504,45 @@ class ExperimentConfigPopup(QDialog):
         super().__init__(parent)
         self.timekeeper = timekeeper
         self._callback = _callback
-        self.experiment_config = ExperimentConfiguration()
+        self.experiment_config = ExperimentConfiguration(
+            self, TASK_LIST_DICTIONARY
+        )  # Pass self as parent
         self.initUI()
         self.showDefaultMessage()
 
     def initUI(self):
+        self.setWindowTitle("Experiment Configuration")
+        self.resize(250, 150)  # Adjust size as needed
         self.layout = QVBoxLayout(self)
+
+        # Use a QStackedWidget to switch between default message and loaded configuration UI
+        self.parametersStack = QStackedWidget(self)
+        self.layout.addWidget(self.parametersStack)
+        self.parametersStack.addWidget(
+            self.experiment_config
+        )  # Add experiment configuration UI
 
         self.loadConfigButton = QPushButton("Load Configuration", self)
         self.loadConfigButton.clicked.connect(self.loadConfigurationDialog)
         self.layout.addWidget(self.loadConfigButton)
 
-        self.parametersStack = QStackedWidget(self)
-        self.layout.addWidget(self.parametersStack)
-
         self.runButton = QPushButton("Run Experiment", self)
-        self.runButton.clicked.connect(self.runExperiment)
+        self.runButton.clicked.connect(self.accept)
         self.runButton.setEnabled(False)  # Disabled until a valid config is loaded
         self.layout.addWidget(self.runButton)
 
         self.showDefaultMessage()
 
     def showDefaultMessage(self):
-        # Default message prompting user to load a configuration file
-        defaultMsgWidget = QLabel("Please load a configuration file to begin.", self)
-        self.parametersStack.addWidget(defaultMsgWidget)
-        self.parametersStack.setCurrentWidget(defaultMsgWidget)
+        # Show a default message or the experiment configuration UI based on the state
+        if not self.experiment_config.config:  # No config loaded
+            defaultMsgWidget = QLabel(
+                "Please load a configuration file to begin.", self
+            )
+            self.parametersStack.addWidget(defaultMsgWidget)
+            self.parametersStack.setCurrentWidget(defaultMsgWidget)
+        else:  # Config loaded
+            self.parametersStack.setCurrentWidget(self.experiment_config)
 
     def loadConfigurationDialog(self):
         fileName, _ = QFileDialog.getOpenFileName(
@@ -535,20 +552,15 @@ class ExperimentConfigPopup(QDialog):
             self.loadConfiguration(fileName)
 
     def loadConfiguration(self, config_path):
+        # Load and validate configuration, then switch to the configuration UI
         try:
-            # Assuming this does not take config_path as a parameter
-            self.experiment_config.loadConfiguration(
-                config_path
-            )  # Load and validate within this method
-
-            # Check if configuration is valid before enabling the run button
-            valid, _ = self.experiment_config.validate_configuration()
+            valid, message = self.experiment_config.loadConfiguration(config_path)
             self.runButton.setEnabled(valid)
-
-            if not valid:
+            if valid:
+                self.parametersStack.setCurrentWidget(self.experiment_config)
+            else:
+                QMessageBox.warning(self, "Configuration Validation Failed", message)
                 self.showDefaultMessage()
-                return
-            self.experiment_config.updateUI()
         except Exception as e:
             QMessageBox.critical(
                 self,
@@ -557,32 +569,35 @@ class ExperimentConfigPopup(QDialog):
             )
             self.showDefaultMessage()
 
-    def runExperiment(self):
-        steps = self.experiment_config.get_experiment_steps()
-        schedule_time = datetime.now()  # Start scheduling from the current time
-
+    def accept(self):
+        """
+        Override the QDialog's accept method to schedule tasks based on the loaded configuration.
+        """
+        steps = self.experiment_config.get_configuration()
         for step in steps:
-            task_name = step["task"]
-            # Extract parameters from the step, assuming parameters are wrapped in a list
-            params = step["parameters"][0] if step["parameters"] else {}
-            # Schedule the task and calculate the next task's start time based on the duration
-            schedule_time = self.schedule_experiment_step(
-                task_name, schedule_time, **params
-            )
+            task_name = step.get("task")
+            parameters = step.get("parameters", [{}])[
+                0
+            ]  # Assuming parameters are provided in a list containing a single dict
+            schedule_time = (
+                datetime.now()
+            )  # This should be adjusted based on your scheduling logic
 
-    def schedule_experiment_step(self, task_name, schedule_time, **kwargs):
-        # Extract the duration and calculate the end time of this task
-        duration = kwargs.pop("duration", 10)  # Default to 10 seconds if not specified
-        end_time = schedule_time + timedelta(seconds=duration)
+            # Example: Adjust the call to match the signature of your timekeeper's scheduling method
+            try:
+                self.timekeeper.add_job(
+                    task_name=task_name, schedule_time=schedule_time, **parameters
+                )
+            except Exception as e:
+                QMessageBox.critical(
+                    self,
+                    "Error Scheduling Task",
+                    f"An error occurred while scheduling '{task_name}': {str(e)}",
+                )
+                return  # Stop scheduling further tasks if an error occurs
 
-        # Schedule the task
-        job_id = self.timekeeper.add_job(
-            task_name=task_name, schedule_time=schedule_time, **kwargs
-        )
-        print(f"Scheduled {task_name} with job ID {job_id} for {duration} seconds")
-
-        # Return the calculated end time, which will be the start time for the next task
-        return end_time
+        self._callback()  # Invoke the callback to refresh UI or perform other actions
+        super().accept()
 
 
 class JobDetailsDialog(QDialog):
