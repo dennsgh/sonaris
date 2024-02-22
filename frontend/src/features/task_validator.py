@@ -1,6 +1,6 @@
 import inspect
 from enum import Enum
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Tuple, Optional
 
 
 def is_type_compatible(expected_type, value) -> bool:
@@ -85,39 +85,110 @@ def validate_task_parameters(
 
     return True, "All parameters are valid."
 
+def is_in_enum(name: str, task_enum: Enum) -> Optional[Any]:
+    """
+    Finds and returns the corresponding Enum value for a given task name.
 
-def validate_configuration(
-    config: Dict[str, Any], task_functions: Dict[str, Callable], task_enum: Enum = None
-) -> List[Tuple[str, bool, str]]:
+    Args:
+        name: The name of the task to find in the Enum.
+        task_enum: The Enum containing task names and values.
+
+    Returns:
+        True if part of enum.
+    """
+    name = name.lower()
+    for enum_member in task_enum:
+        if str(enum_member.name).lower() == name or str(enum_member.value).lower() == name:
+            return True
+    return False
+
+def get_task_enum_value(name: str, task_enum: Enum) -> Optional[Any]:
+    """
+    Finds and returns the corresponding Enum value for a given task name.
+
+    Args:
+        name: The name of the task to find in the Enum.
+        task_enum: The Enum containing task names and values.
+
+    Returns:
+        The Enum value if a match is found, None otherwise.
+    """
+    name = name.lower()
+    for enum_member in task_enum:
+        if str(enum_member.name).lower() == name or str(enum_member.value).lower() == name:
+            return enum_member.value
+    return None
+
+
+def get_task_enum_name(name: str, task_enum: Enum) -> Optional[str]:
+    """
+    Finds and returns the Enum name for a given task name.
+
+    Args:
+        name: The name of the task to match.
+        task_enum: The Enum class that maps task names to values.
+
+    Returns:
+        The Enum name if a match is found, None otherwise.
+    """
+    name = name.lower()
+    for enum_member in task_enum:
+        if str(enum_member.name).lower() == name or str(enum_member.value).lower() == name:
+            return enum_member.name
+    return None
+
+
+
+def get_function_to_validate(name: str, task_functions: Dict[str, Callable], task_enum: Optional[Enum]) -> Optional[Callable]:
+    """
+    Attempt to match the name to a function in task_functions directly or via an Enum.
+
+    Args:
+        name: The name of the task to match.
+        task_functions: A dictionary mapping task names to their corresponding functions.
+        task_enum: An optional Enum class that maps task names or values to function keys in task_functions.
+
+    Returns:
+        The matched function if found, None otherwise.
+    """
+    # Try to get the function directly by name
+    name = name.lower()
+    function_to_validate = task_functions.get(name.lower())
+
+    # If not found and an Enum is provided, try matching against Enum names or values
+    if not function_to_validate and task_enum:
+        for enum_member in task_enum:
+            if str(enum_member.name).lower() == name or str(enum_member.value).lower() == name:
+                return task_functions.get(enum_member.value)
+                
+    return function_to_validate
+
+def validate_configuration(config: Dict[str, Any], task_functions: Dict[str, Callable], task_enum: Enum = None) -> List[Tuple[str, bool, str]]:
     results = []
     for step in config.get("experiment", {}).get("steps", []):
-        task_name = str(step.get("task")).lower()
-        function_to_validate = None
-
-        # First, try to get the function directly by task_name
-        if task_name in task_functions:
-            function_to_validate = task_functions[task_name]
-
-        # If not found and an Enum is provided, try matching against Enum names or values
-        elif task_enum:
-            matched = False
-            for enum_member in task_enum:
-                if str(enum_member.name).lower() == task_name or str(enum_member.value).lower() == task_name:
-                    print(f"Match found for {task_name} as {enum_member.name}")
-                    function_to_validate = task_functions.get(enum_member.value)
-                    matched = True
-                    break
-            if not matched:
-                print(f"No match found for {task_name} in Enum.")
-
+        name = str(step.get("task")).lower()
+        
+        # Use the refactored function to get the function to validate
+        function_to_validate = get_function_to_validate(name, task_functions, task_enum)
 
         # Proceed with validation if a matching function is found
         if function_to_validate:
             is_valid, message = validate_task_parameters(
                 function_to_validate, step.get("parameters", [{}])[0]
             )
-            results.append((task_name, is_valid, message))
+            results.append((name, is_valid, message))
         else:
-            results.append((task_name, False, "Task function not found."))
+            results.append((name, False, "Task function not found."))
 
     return results
+
+def validate_task(name: str, task_functions: Dict[str, Callable], task_enum: Enum = None) -> List[Tuple[str, bool, str]]:
+    name = str(name).lower()
+    
+    # Use the refactored function to get the function to validate
+    function_to_validate = get_function_to_validate(name, task_functions, task_enum)
+
+    # Proceed with validation if a matching function is found
+    if function_to_validate:
+        return True
+    return False

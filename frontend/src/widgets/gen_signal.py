@@ -620,7 +620,6 @@ class DG4202DefaultWidget(QWidget):
                 self.update_sweep_graph(channel)
                 self.update_button_state(channel)
                 self.update_input_fields(channel)
-                # awaiting implementation
 
     def update_input_fields(self, channel: int):
         sweep_parameters = self.all_parameters[f"{channel}"]["mode"]["parameters"][

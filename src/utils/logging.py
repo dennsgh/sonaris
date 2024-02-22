@@ -24,10 +24,12 @@ def save_json(data, path: Path):
     """
     Saves the given data as a JSON file to the specified path.
     """
-    with open(path, "w") as file:
-        json.dump(data, file, indent=4)
-
-
+    try:
+        with open(path, "w") as file:
+            json.dump(data, file, indent=4)
+    except Exception as e:
+        print(f"Unexpected error loading JSON file: {e}.")
+        
 def create_numbered_backup(original_path: Path):
     """
     Creates a numbered backup for the given path, ensuring no existing backup is overwritten.

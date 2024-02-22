@@ -1,9 +1,7 @@
 import json
-import os
 from datetime import datetime, timedelta
-from typing import Callable
+from typing import Callable, List
 
-import yaml
 from features.tasks import (
     TASK_USER_INTERFACE_DICTIONARY,
     TaskName,
@@ -32,8 +30,8 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from widgets.sch_parameters import ExperimentConfiguration, ParameterConfiguration
-
+from widgets.sch_parameters import ParameterConfiguration
+from widgets.sch_experiments import ExperimentConfiguration
 from scheduler.timekeeper import Timekeeper
 from utils import logging as logutils
 
@@ -576,11 +574,11 @@ class ExperimentConfigPopup(QDialog):
             self.showDefaultMessage()
 
     def accept(self):
-        steps = self.experiment_config.get_configuration()
+        steps:List[dict] = self.experiment_config.getConfiguration().get("experiment",{"steps":[]}).get("steps",[])
         duration = timedelta(seconds=0)
         for step in steps:
             task_name_str = step.get("task")
-            task_enum = TaskName.get_name_enum(task_name_str)
+            task_enum = TaskName.get_name_enum(task_name_str) if TaskName.get_name_enum(task_name_str) else TaskName.get_value_enum(task_name_str)
             if not task_enum:
                 QMessageBox.critical(
                     self,
@@ -590,16 +588,16 @@ class ExperimentConfigPopup(QDialog):
                 continue  # Skip this task and continue with the next
 
             parameters = step.get("parameters", [{}])[0]
-            step_duration = timedelta(step.get("duration", 0))
-            duration = duration + step_duration
-            schedule_time = datetime.now()  # Adjust as needed
+            # Debugging print to verify parameters before scheduling
+            print(f"Scheduling {task_name_str} with parameters: {parameters}")
 
+            schedule_time = datetime.now() + duration
             try:
                 # Assuming you have a method to handle scheduling by Enum member
                 self.timekeeper.add_job(
-                    task_name=task_enum.name,  # Use Enum name for scheduling
+                    task_name=task_enum.value,  # Use Enum name for scheduling
                     schedule_time=schedule_time,
-                    **parameters,
+                    kwargs=parameters
                 )
             except Exception as e:
                 QMessageBox.critical(
@@ -608,6 +606,8 @@ class ExperimentConfigPopup(QDialog):
                     f"An error occurred while scheduling '{task_enum.value}': {str(e)}",
                 )
                 return
+            step_duration = timedelta(seconds=step.get("duration", 0))
+            duration += step_duration
 
         self._callback()  # Refresh UI or other actions
         super().accept()
