@@ -10,6 +10,7 @@ from features.managers import DG4202Manager, EDUX1002AManager, StateManager
 from features.tasks import get_tasks
 from header import OSCILLOSCOPE_BUFFER_SIZE
 from pages import factory, general, monitor, scheduler, settings
+from PyQt6.QtCore import QLocale
 from PyQt6.QtGui import QGuiApplication, QIcon
 from PyQt6.QtWidgets import QApplication, QStackedWidget, QWidget
 from widgets.menu import MainMenuBar
@@ -18,6 +19,9 @@ from widgets.templates import ModularMainWindow
 
 from scheduler.timekeeper import Timekeeper
 from scheduler.worker import Worker
+
+# Before creating your application instance
+QLocale.setDefault(QLocale(QLocale.Language.English, QLocale.Country.UnitedStates))
 
 
 def signal_handler(signum, frame):

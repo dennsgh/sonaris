@@ -2,6 +2,8 @@ import inspect
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+from header import ErrorLevel
+
 
 def is_type_compatible(expected_type, value) -> bool:
     """
@@ -53,37 +55,40 @@ def validate_task_parameters(
         expected_type = param.annotation
         provided_value = parameters.get(name, inspect.Parameter.empty)
 
-        if provided_value is inspect.Parameter.empty:
-            if param.default is inspect.Parameter.empty:  # Required parameter
-                missing_params.append(name)
-        else:
-            if (
-                not is_type_compatible(expected_type, provided_value)
-                and expected_type is not inspect.Parameter.empty
-            ):
-                type_mismatches.append((name, type(provided_value), expected_type))
+        if (
+            provided_value is inspect.Parameter.empty
+            and param.default is inspect.Parameter.empty
+        ):
+            missing_params.append(name)
+        elif (
+            not is_type_compatible(expected_type, provided_value)
+            and expected_type is not inspect.Parameter.empty
+        ):
+            type_mismatches.append(
+                (name, type(provided_value).__name__, expected_type.__name__)
+            )
 
     for name in parameters:
         if name not in sig.parameters:
             extra_params.append(name)
 
-    if missing_params or extra_params or type_mismatches:
-        messages = []
-        if missing_params:
-            messages.append(f"Missing required params: {', '.join(missing_params)}.")
-        if extra_params:
-            messages.append(f"Extra params provided: {', '.join(extra_params)}.")
-        if type_mismatches:
-            mismatch_details = ", ".join(
-                [
-                    f"{name} (got {got.__name__}, expected {expected.__name__})"
-                    for name, got, expected in type_mismatches
-                ]
-            )
-            messages.append(f"Type mismatches: {mismatch_details}.")
-        return False, "Validation failed: " + " ".join(messages)
+    messages = []
+    if missing_params:
+        messages.append(f"Missing required params: {', '.join(missing_params)}.")
+    if extra_params:
+        messages.append(f"Extra params provided: {', '.join(extra_params)}.")
+    if type_mismatches:
+        mismatch_details = ", ".join(
+            [
+                f"{name} (got {got}, expected {expected})"
+                for name, got, expected in type_mismatches
+            ]
+        )
+        messages.append(f"Type mismatches: {mismatch_details}.")
 
-    return True, "All parameters are valid."
+    return False if messages else True, (
+        " ".join(messages) if messages else "All parameters are valid."
+    )
 
 
 def is_in_enum(name: str, task_enum: Enum) -> Optional[Any]:
@@ -183,21 +188,34 @@ def validate_configuration(
     config: Dict[str, Any], task_functions: Dict[str, Callable], task_enum: Enum = None
 ) -> List[Tuple[str, bool, str]]:
     results = []
-    for step in config.get("experiment", {}).get("steps", []):
+    for index, step in enumerate(
+        config.get("experiment", {}).get("steps", []), start=1
+    ):
         name = str(step.get("task")).lower()
-
-        # Use the refactored function to get the function to validate
         function_to_validate = get_function_to_validate(name, task_functions, task_enum)
 
-        # Proceed with validation if a matching function is found
         if function_to_validate:
             is_valid, message = validate_task_parameters(
                 function_to_validate, step.get("parameters", {})
             )
-            results.append((name, is_valid, message))
+            results.append(
+                (
+                    f"Step {index}: {name}",
+                    is_valid,
+                    message,
+                    ErrorLevel.INFO if is_valid else ErrorLevel.BAD_CONFIG,
+                )
+            )
         else:
-            results.append((name, False, "Task function not found."))
-
+            results.append(
+                (
+                    f"Step {index}: {name}",
+                    False,
+                    "Task function not found.",
+                    ErrorLevel.BAD_CONFIG,
+                )
+            )
+    print(results)
     return results
 
 

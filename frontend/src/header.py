@@ -6,6 +6,12 @@ GRAPH_RGB = (255, 255, 255)
 OSCILLOSCOPE_BUFFER_SIZE = 512
 
 
+class ErrorLevel(Enum):
+    INFO = 0  # Missing parameters, etc.
+    BAD_CONFIG = 1  # Missing tasks, etc.
+    INVALID_YAML = 2  # Issues with loading/parsing YAML
+
+
 class DeviceName(Enum):
     DG4202 = "DG4202"
     EDUX1002A = "EDUX1002A"

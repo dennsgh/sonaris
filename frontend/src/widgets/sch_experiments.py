@@ -7,16 +7,12 @@ from features.task_validator import (
     get_task_enum_value,
     validate_configuration,
 )
+from header import ErrorLevel
 from PyQt6.QtWidgets import (
-    QCheckBox,
-    QComboBox,
-    QDoubleSpinBox,
     QFormLayout,
     QLabel,
-    QLineEdit,
     QMessageBox,
     QScrollArea,
-    QSpinBox,
     QTabWidget,
     QTextEdit,
     QVBoxLayout,
@@ -47,50 +43,75 @@ class ExperimentConfiguration(QWidget):
         self.main_layout.addWidget(self.descriptionWidget)
 
     def loadConfiguration(self, config_path):
-        try:
-            with open(config_path, "r") as file:
-                self.config = yaml.safe_load(file)
-            valid, message = self.validate_and_display()
+        valid, message, descriptionText = self.load_and_display(config_path)
+        self.descriptionWidget.setText(descriptionText)
+
+        if valid:
             self.displayExperimentDetails()
             self.update()
             return True, "Configuration loaded successfully."
-        except Exception as e:
-            QMessageBox.critical(
-                self, "Error", f"Failed to load or parse the configuration: {str(e)}"
-            )
-            self.descriptionWidget.setText("Failed to load or parse the configuration.")
+        else:
             return False, "Failed to load or parse the configuration."
 
     def validate(self, data: dict):
         overall_valid = True
+        highest_error_level = ErrorLevel.INFO  # Assume the lowest severity to start
         validation_results = validate_configuration(
             data, self.task_functions, self.task_enum
         )
-        messages = []
-        for task_name, is_valid, message in validation_results:
+        messages = (
+            []
+        )  # This will accumulate our error messages in a more compact format
+
+        for task_name, is_valid, message, error_level in validation_results:
             if not is_valid:
                 overall_valid = False
-                messages.append(f"{task_name}: {message}")
+                # Update the highest error level based on the current error
+                if error_level.value > highest_error_level.value:
+                    highest_error_level = error_level
+            # Append the task and its message in a compact manner
+            messages.append(f"{task_name}: {message}")
 
-        return overall_valid, "\n".join(messages)
+        # Join messages with a separator that puts each on a new line but in a more compact form
+        compact_message = "\n".join(messages)
 
-    def validate_and_display(self):
+        return overall_valid, compact_message, highest_error_level
+
+    def error_handling(self, overall_valid, messages, highest_error_level):
+        if overall_valid or highest_error_level == ErrorLevel.INFO:
+            descriptionText = self.generate_experiment_summary(self.config)
+        else:
+            descriptionText = (
+                "OK"  # Default message, will be overwritten by error cases below
+            )
+
+        # Handle different levels of error messages
+        if highest_error_level == ErrorLevel.BAD_CONFIG:
+            QMessageBox.warning(
+                self, "Configuration Validation Issues", "".join(messages)
+            )
+            descriptionText = "Configuration Validation Issues: " + "\n".join(messages)
+        elif highest_error_level == ErrorLevel.INVALID_YAML:
+            QMessageBox.critical(
+                self, "Configuration Validation Failed", "".join(messages)
+            )
+            descriptionText = "Configuration Validation Failed: " + "\n".join(messages)
+        return descriptionText
+
+    def load_and_display(self, config_path):
+        with open(config_path, "r") as file:
+            self.config = yaml.safe_load(file)
         if not self.config:
             QMessageBox.warning(self, "Error", "No configuration loaded.")
             return
-        overall_valid, messages = self.validate(self.config)
 
-        if not overall_valid:
-            QMessageBox.warning(
-                self, "Configuration Validation Failed", "\n".join(messages)
-            )
-            self.descriptionWidget.setText(
-                "Configuration validation failed:\n" + "\n".join(messages)
-            )
-        else:
-            self.displayExperimentDetails()
-
-        return overall_valid, "\n".join(messages)
+        overall_valid, messages, highest_error_level = self.validate(self.config)
+        # Initialize description text with a default message or an experiment summary
+        # Generate a summary if the config is valid or if only INFO level messages are present
+        descriptionText = self.error_handling(
+            overall_valid, messages, highest_error_level
+        )
+        return overall_valid, "\n".join(messages), descriptionText
 
     def displayExperimentDetails(self):
         if not self.config:
@@ -108,7 +129,8 @@ class ExperimentConfiguration(QWidget):
 
     def createTaskTab(self, task: dict):
         """
-        Creates a tab for each experiment step and handles its widgets and validation.
+        Creates a tab for each experiment step and handles its widgets and validation,
+        iterating through the function's parameters for UI generation.
         """
 
         tab = QWidget()
@@ -130,17 +152,28 @@ class ExperimentConfiguration(QWidget):
         sig = inspect.signature(task_function)
         param_types = {name: param.annotation for name, param in sig.parameters.items()}
 
-        for param, value in task.get("parameters", {}).items():
-            expected_type = param_types.get(param, str)  # Default to str if not found
+        # Initialize a dictionary to store the task parameters from the configuration
+        task_parameters = task.get("parameters", {})
+
+        for param_name, param in sig.parameters.items():
+            # Retrieve the parameter value from the task configuration if available
+            # Otherwise, set a default value or handle the missing case as appropriate
+            value = task_parameters.get(
+                param_name, None
+            )  # Adjust the default value as needed
+
+            expected_type = param_types.get(
+                param_name, str
+            )  # Default to str if not specified
 
             # Create appropriate widget based on expected type and enforce range limits
             param_constraints = getattr(task_function, "param_constraints", {})
             widget = UIComponentFactory.create_widget(
-                param, value, expected_type, param_constraints
+                param_name, value, expected_type, param_constraints
             )
 
             # Create labels for parameter name and type hinting (optional)
-            paramNameLabel = QLabel(f"{param} :{expected_type.__name__}")
+            paramNameLabel = QLabel(f"{param_name} :{expected_type.__name__}")
             # Add labels and widget to the form layout
             formLayout.addRow(paramNameLabel, widget)
 
@@ -203,9 +236,12 @@ class ExperimentConfiguration(QWidget):
         data = self.getUserData()
 
         # Validate the extracted data
-        valid, message = self.validate(data)
-        if not valid:
-            QMessageBox.critical(self, "Validation Error", message)
+        overall_valid, messages, highest_error_level = self.validate(data)
+        descriptionText = self.error_handling(
+            overall_valid, messages, highest_error_level
+        )
+        if not overall_valid:
+            self.descriptionWidget.setText(descriptionText)
             raise ValueError("Configuration validation failed.")
 
         return data
@@ -226,6 +262,30 @@ class ExperimentConfiguration(QWidget):
                 return float(text)
         else:
             return text  # Return as string by default
+
+    def generate_experiment_summary(self, data: dict):
+        """
+        Generates a summary of the experiment based on the YAML configuration.
+        This is a placeholder function; you should replace the logic with actual
+        processing of your specific YAML structure to extract and format the summary.
+        """
+        # Pseudocode for generating a summary - replace with actual implementation
+        experiment_name = data.get("experiment_name", "Unnamed Experiment")
+        parameters = data.get("parameters", {})
+        objectives = data.get("objectives", [])
+
+        summary_lines = [
+            f"Experiment: {experiment_name}",
+            "Parameters:",
+        ]
+        for param, value in parameters.items():
+            summary_lines.append(f"  - {param}: {value}")
+
+        summary_lines.append("Objectives:")
+        for objective in objectives:
+            summary_lines.append(f"  - {objective}")
+
+        return "\n".join(summary_lines)
 
     def saveConfiguration(self, config_path):
         """

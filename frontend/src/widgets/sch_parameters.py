@@ -1,3 +1,6 @@
+import inspect
+
+from features.task_validator import get_task_enum_name
 from PyQt6.QtWidgets import (
     QComboBox,
     QLabel,
@@ -10,61 +13,79 @@ from widgets.ui_factory import UIComponentFactory
 
 
 class ParameterConfiguration(QWidget):
-    def __init__(self, task_dictionary, parent=None):
+    def __init__(self, task_dictionary, parent=None, task_enum=None):
         super().__init__(parent)
         self.task_dictionary = task_dictionary
+        self.task_enum = task_enum
         self.widget_cache = {}  # Cache for configurations
-        self.stacked_widget = QStackedWidget(self)  # Use QStackedWidget to manage UIs
+        self.stacked_widget = QStackedWidget(self)
         self.main_layout = QVBoxLayout(self)
-        self.main_layout.addWidget(
-            self.stacked_widget
-        )  # Add the stacked widget to the main layout
+        self.main_layout.addWidget(self.stacked_widget)
 
     def updateUI(self, device, task_name):
         cache_key = (device, task_name)
         if cache_key not in self.widget_cache:
-            spec = self.task_dictionary.get(device, {}).get(task_name, [])
+            task_func = self.task_dictionary.get(device, {}).get(task_name)
+            spec = self._infer_ui_spec_from_function(task_func)
             container_widget = self.generateUI(spec)
             self.widget_cache[cache_key] = container_widget
-            self.stacked_widget.addWidget(
-                container_widget
-            )  # Add new configuration to stacked widget
+            self.stacked_widget.addWidget(container_widget)
 
-        # Switch to the relevant configuration
         self.stacked_widget.setCurrentWidget(self.widget_cache[cache_key])
 
-    def createComponent(self, component, layout):
-        # Adjust this method to add widgets to the passed layout
-        if component["type"] == "QComboBox":
-            comboBox = QComboBox(self)
-            options = component.get("options", [])
-            comboBox.addItems(options)
-            if "default" in component:
-                default_index = (
-                    options.index(component["default"])
-                    if component["default"] in options
-                    else 0
+    def _infer_ui_spec_from_function(self, func):
+        # This function infers the UI specification from the function's parameter constraints
+        spec = []
+        sig = inspect.signature(func)
+        param_types = {name: param.annotation for name, param in sig.parameters.items()}
+        if hasattr(func, "param_constraints"):
+            param_constraints = getattr(func, "param_constraints", {})
+            for param, constraint in constraints.items():
+                expected_type = param_types.get(
+                    param, str
+                )  # Default to str if not found
+                UIComponentFactory.create_widget(
+                    param,
+                    constraint[0],
+                    expected_type,
+                    {"min": constraint[0], "max": constraint[1]},
                 )
-                comboBox.setCurrentIndex(default_index)
-            layout.addWidget(QLabel(component["label"]))  # Add to the passed layout
-            layout.addWidget(comboBox)  # Add to the passed layout
-        elif component["type"] == "QLineEdit":
-            lineEdit = QLineEdit(self)
-            if "default" in component:
-                lineEdit.setText(str(component["default"]))
-            layout.addWidget(QLabel(component["label"]))  # Add to the passed layout
-            layout.addWidget(lineEdit)  # Add to the passed layout
-        # Implement other component types as needed
+                if isinstance(constraint, tuple) and len(constraint) == 2:
+                    if all(isinstance(x, int) for x in constraint):
+                        # Integer range
+                        spec.append(
+                            UIComponentFactory.create_widget(
+                                param,
+                                constraint[0],
+                                int,
+                                {"min": constraint[0], "max": constraint[1]},
+                            )
+                        )
+                    elif any(isinstance(x, float) for x in constraint):
+                        # Float range
+                        spec.append(
+                            UIComponentFactory.create_widget(
+                                param,
+                                constraint[0],
+                                float,
+                                {"min": constraint[0], "max": constraint[1]},
+                            )
+                        )
+                elif isinstance(constraint, bool):
+                    # Boolean checkbox
+                    spec.append(
+                        UIComponentFactory.create_widget(param, constraint, bool)
+                    )
+                # Add more cases as necessary
+        return spec
 
     def generateUI(self, spec):
-        container = QWidget()  # Container for this set of parameters
+        container = QWidget()
         layout = QVBoxLayout(container)
-
-        for component in spec:
-            self.createComponent(
-                component, layout
-            )  # Pass the layout to createComponent
-
+        for widget in spec:
+            layout.addWidget(
+                widget
+            )  # Directly add the widget returned by UIComponentFactory
         container.setLayout(layout)
         return container
 

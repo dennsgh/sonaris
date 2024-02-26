@@ -6,34 +6,46 @@ class UIComponentFactory:
     def create_widget(param_name, value, expected_type, constraints=None):
         """Creates and returns a widget based on the expected data type and constraints, appending metadata."""
         widget = None
+        min_val, max_val = -2147483647, 2147483647  # Default limits for int and float
 
         if expected_type == bool:
             widget = QCheckBox()
-            widget.setChecked(value)
+            widget.setChecked(False if value is None else value)
         elif expected_type in (int, float):
             widget = QSpinBox() if expected_type == int else QDoubleSpinBox()
-            min_val, max_val = -2147483647, 2147483647  # Default limits
             if constraints:
-                # Apply constraints if available
-                min_val, max_val = constraints.get("min", min_val), constraints.get(
-                    "max", max_val
-                )
+                # Check if constraints is a tuple and assign min and max values accordingly
+                if isinstance(constraints, tuple) and len(constraints) == 2:
+                    min_val, max_val = constraints
+                else:
+                    min_val = (
+                        constraints.get("min", min_val)
+                        if isinstance(constraints, dict)
+                        else min_val
+                    )
+                    max_val = (
+                        constraints.get("max", max_val)
+                        if isinstance(constraints, dict)
+                        else max_val
+                    )
             widget.setMinimum(min_val)
             widget.setMaximum(max_val)
-            widget.setValue(value)
+            widget.setValue(0 if value is None else value)
         elif expected_type == str:
-            if constraints and "options" in constraints:
-                # If there are specific options provided, use a combo box
+
+            widget = QLineEdit()
+            widget.setText(value)
+            if constraints and "options" in constraints and expected_type == str:
+                # Replace QLineEdit with QComboBox for string type with options constraints
                 widget = QComboBox()
                 widget.addItems(constraints["options"])
-                widget.setCurrentText(value)
-            else:
-                # Default to QLineEdit for general string input
-                widget = QLineEdit()
-                widget.setText(value)
+                widget.setCurrentText("" if value is None else value)
 
         # Append metadata here
         widget.setProperty("expected_type", expected_type.__name__)
+        widget.setProperty(
+            "param_name", param_name
+        )  # Store parameter name as well for later retrieval
 
         return widget
 
