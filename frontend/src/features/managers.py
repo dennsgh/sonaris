@@ -8,7 +8,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pyvisa
-from utils import logging as logutils
+from filelock import FileLock, Timeout
 
 # Import classes and modules from device module as needed.
 from device.data import DataBuffer
@@ -20,24 +20,27 @@ from device.edux1002a import (
     EDUX1002ADetector,
     EDUX1002AMock,
 )
+from utils import logging as logutils
 
 # Setting up basic logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
-from filelock import Timeout, FileLock
+
 
 class StateManager:
     def __init__(self, json_file: Path = None):
         self.json_file = json_file or Path(os.getenv("DATA"), "state.json")
-        self.lock_file = self.json_file.with_suffix('.lock')
+        self.lock_file = self.json_file.with_suffix(".lock")
         self.data = self.default_state()
         self.birthdate = time.time()
 
     def read_state(self) -> dict:
         with FileLock(self.lock_file, timeout=10):
             # Utilize the load_json_with_backup utility function with locking
-            self.data = logutils.load_json_with_backup(self.json_file) or self.default_state()
+            self.data = (
+                logutils.load_json_with_backup(self.json_file) or self.default_state()
+            )
         return self.data
 
     def write_state(self, state: dict):

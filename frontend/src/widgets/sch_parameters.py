@@ -1,5 +1,3 @@
-
-from features.task_validator import validate_configuration
 from PyQt6.QtWidgets import (
     QComboBox,
     QLabel,
@@ -8,6 +6,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from widgets.ui_factory import UIComponentFactory
 
 
 class ParameterConfiguration(QWidget):
@@ -24,7 +23,6 @@ class ParameterConfiguration(QWidget):
     def updateUI(self, device, task_name):
         cache_key = (device, task_name)
         if cache_key not in self.widget_cache:
-            print(f"Creating {device} - {task_name}")
             spec = self.task_dictionary.get(device, {}).get(task_name, [])
             container_widget = self.generateUI(spec)
             self.widget_cache[cache_key] = container_widget
@@ -70,7 +68,7 @@ class ParameterConfiguration(QWidget):
         container.setLayout(layout)
         return container
 
-    def get_parameters(self, task_spec):
+    def getUserData(self, task_spec):
         parameters = {}
         current_container = (
             self.stacked_widget.currentWidget()
@@ -93,14 +91,29 @@ class ParameterConfiguration(QWidget):
                         else None
                     )
                     if input_widget:
-                        value = self.extract_value(input_widget, spec)
+                        value = self.extractValue(input_widget, spec)
                         if value is not None:  # Only add if extraction was successful
                             parameters[kwarg_label] = value
                     break  # Break after finding the widget to avoid unnecessary iterations
 
         return parameters
 
-    def extract_value(self, widget, spec):
+    def getConfiguration(self, task_spec):
+        """
+        Collects the validated configuration from the UI and prepares it for use or saving.
+        """
+        # Extract the user-modified configuration from the UI elements
+        data = self.getUserData(task_spec)
+
+        # Validate the extracted data
+        # valid, message = self.validate(data) TODO
+        # if not valid:
+        #     QMessageBox.critical(self, "Validation Error", message)
+        #     raise ValueError("Configuration validation failed.")
+
+        return data
+
+    def extractValue(self, widget, spec):
         if isinstance(widget, QLineEdit):
             value = widget.text()
         elif isinstance(widget, QComboBox):
@@ -125,6 +138,6 @@ class ParameterConfiguration(QWidget):
             return str(value)
         elif spec.get("data_type") == "bool":
             # Assuming that boolean values are represented by specific strings (e.g., "ON" or "OFF")
-            return value.lower() in ["on", "true", "1"]
+            return value.lower() in ["true", "1", "t", "y", "yes", "ok", "on"]
         else:
             return value

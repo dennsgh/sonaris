@@ -1,5 +1,6 @@
 from enum import Enum
 
+from features.task_decorator import parameter_constraints
 from header import DeviceName
 from pages import factory
 
@@ -31,11 +32,18 @@ class TaskName(Enum):
         return None
 
 
+@parameter_constraints(channel=(1, 2))
 def task_on_off_dg4202(channel: int, status: bool) -> bool:
     factory.dg4202_manager.device.output_on_off(channel=channel, status=status)
     return True
 
 
+@parameter_constraints(
+    frequency=(0.0, float("inf")),
+    channel=(1, 2),
+    waveform_type=DG4202.available_waveforms(),
+    offset=(0, 5),
+)
 def task_set_waveform_parameters(
     channel: int,
     send_on: bool,
@@ -57,6 +65,15 @@ def task_set_waveform_parameters(
     return True
 
 
+@parameter_constraints(
+    channel=(1, 2),
+    fstart=(0.0, float("inf")),
+    fstop=(0.0, float("inf")),
+    time=(0.0, float("inf")),
+    rime=(0.0, float("inf")),
+    htime_start=(0.0, float("inf")),
+    htime_stop=(0.0, float("inf")),
+)
 def task_set_sweep_parameters(
     channel: int,
     send_on: bool,
@@ -228,12 +245,16 @@ TASK_USER_INTERFACE_DICTIONARY = {
 }
 
 
-def get_tasks(flatten:bool=False) -> dict:
+def get_tasks(flatten: bool = False) -> dict:
     """Returns the dict of { device : { task-name : func_pointer , ..} ..}
 
     Returns:
         dict: dictionary containing devices and its tasks.
     """
     if flatten:
-        return {inner_key: value for outer_dict in TASK_LIST_DICTIONARY.values() for inner_key, value in outer_dict.items()}
+        return {
+            inner_key: value
+            for outer_dict in TASK_LIST_DICTIONARY.values()
+            for inner_key, value in outer_dict.items()
+        }
     return TASK_LIST_DICTIONARY

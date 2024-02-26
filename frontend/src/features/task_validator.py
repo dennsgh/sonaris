@@ -1,6 +1,6 @@
 import inspect
 from enum import Enum
-from typing import Any, Callable, Dict, List, Tuple, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 
 def is_type_compatible(expected_type, value) -> bool:
@@ -85,6 +85,7 @@ def validate_task_parameters(
 
     return True, "All parameters are valid."
 
+
 def is_in_enum(name: str, task_enum: Enum) -> Optional[Any]:
     """
     Finds and returns the corresponding Enum value for a given task name.
@@ -98,9 +99,13 @@ def is_in_enum(name: str, task_enum: Enum) -> Optional[Any]:
     """
     name = name.lower()
     for enum_member in task_enum:
-        if str(enum_member.name).lower() == name or str(enum_member.value).lower() == name:
+        if (
+            str(enum_member.name).lower() == name
+            or str(enum_member.value).lower() == name
+        ):
             return True
     return False
+
 
 def get_task_enum_value(name: str, task_enum: Enum) -> Optional[Any]:
     """
@@ -115,7 +120,10 @@ def get_task_enum_value(name: str, task_enum: Enum) -> Optional[Any]:
     """
     name = name.lower()
     for enum_member in task_enum:
-        if str(enum_member.name).lower() == name or str(enum_member.value).lower() == name:
+        if (
+            str(enum_member.name).lower() == name
+            or str(enum_member.value).lower() == name
+        ):
             return enum_member.value
     return None
 
@@ -133,13 +141,17 @@ def get_task_enum_name(name: str, task_enum: Enum) -> Optional[str]:
     """
     name = name.lower()
     for enum_member in task_enum:
-        if str(enum_member.name).lower() == name or str(enum_member.value).lower() == name:
+        if (
+            str(enum_member.name).lower() == name
+            or str(enum_member.value).lower() == name
+        ):
             return enum_member.name
     return None
 
 
-
-def get_function_to_validate(name: str, task_functions: Dict[str, Callable], task_enum: Optional[Enum]) -> Optional[Callable]:
+def get_function_to_validate(
+    name: str, task_functions: Dict[str, Callable], task_enum: Optional[Enum]
+) -> Optional[Callable]:
     """
     Attempt to match the name to a function in task_functions directly or via an Enum.
 
@@ -158,23 +170,29 @@ def get_function_to_validate(name: str, task_functions: Dict[str, Callable], tas
     # If not found and an Enum is provided, try matching against Enum names or values
     if not function_to_validate and task_enum:
         for enum_member in task_enum:
-            if str(enum_member.name).lower() == name or str(enum_member.value).lower() == name:
+            if (
+                str(enum_member.name).lower() == name
+                or str(enum_member.value).lower() == name
+            ):
                 return task_functions.get(enum_member.value)
-                
+
     return function_to_validate
 
-def validate_configuration(config: Dict[str, Any], task_functions: Dict[str, Callable], task_enum: Enum = None) -> List[Tuple[str, bool, str]]:
+
+def validate_configuration(
+    config: Dict[str, Any], task_functions: Dict[str, Callable], task_enum: Enum = None
+) -> List[Tuple[str, bool, str]]:
     results = []
     for step in config.get("experiment", {}).get("steps", []):
         name = str(step.get("task")).lower()
-        
+
         # Use the refactored function to get the function to validate
         function_to_validate = get_function_to_validate(name, task_functions, task_enum)
 
         # Proceed with validation if a matching function is found
         if function_to_validate:
             is_valid, message = validate_task_parameters(
-                function_to_validate, step.get("parameters", [{}])[0]
+                function_to_validate, step.get("parameters", {})
             )
             results.append((name, is_valid, message))
         else:
@@ -182,9 +200,12 @@ def validate_configuration(config: Dict[str, Any], task_functions: Dict[str, Cal
 
     return results
 
-def validate_task(name: str, task_functions: Dict[str, Callable], task_enum: Enum = None) -> List[Tuple[str, bool, str]]:
+
+def validate_task(
+    name: str, task_functions: Dict[str, Callable], task_enum: Enum = None
+) -> List[Tuple[str, bool, str]]:
     name = str(name).lower()
-    
+
     # Use the refactored function to get the function to validate
     function_to_validate = get_function_to_validate(name, task_functions, task_enum)
 
