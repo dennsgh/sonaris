@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from typing import Callable, List
 
 from features.task_validator import get_task_enum_value, is_in_enum
-from features.tasks import TASK_USER_INTERFACE_DICTIONARY, TaskName, get_tasks
+from features.tasks import TaskName, get_tasks
 from header import DEVICE_LIST
 from pages import factory
 from PyQt6 import QtCore
@@ -455,7 +455,7 @@ class JobConfigPopup(QDialog):
         selected_task = self.taskSelect.currentText()
         schedule_time = self.getDateTimeFromInputs()
         try:
-            task_spec = TASK_USER_INTERFACE_DICTIONARY[selected_device][selected_task]
+            task_spec = self.task_dict[selected_device][selected_task]
 
             # Get parameters from ParameterConfiguration
             params = self.parameterConfig.getConfiguration(task_spec)

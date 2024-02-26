@@ -303,17 +303,3 @@ class ExperimentConfiguration(QWidget):
             QMessageBox.critical(
                 self, "Error", f"Failed to save configuration: {str(e)}"
             )
-
-
-# Helper function to retrieve the type information from a widget
-def get_type_from_widget(widget):
-    """
-    Extracts the property type information from the widget's meta-object.
-    """
-
-    meta_object = widget.metaObject()
-    for i in range(meta_object.propertyCount()):
-        prop = meta_object.property(i)
-        if prop.name() == b"expectedType":
-            return prop.type()
-    return None
