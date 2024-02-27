@@ -226,6 +226,7 @@ class ExperimentConfiguration(QWidget):
         sig = inspect.signature(task_function)
         param_types = {name: param.annotation for name, param in sig.parameters.items()}
         param_constraints = getattr(task_function, "param_constraints", {})
+        print(param_constraints)
         # Initialize a dictionary to store the task parameters from the configuration
         task_parameters = task.get("parameters", {})
 

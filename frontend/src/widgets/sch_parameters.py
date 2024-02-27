@@ -1,17 +1,7 @@
 import inspect
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from features.task_validator import (  # Assuming custom import, details unknown
-    get_task_enum_name,
-)
-from PyQt6.QtWidgets import (
-    QComboBox,
-    QLabel,
-    QLineEdit,
-    QStackedWidget,
-    QVBoxLayout,
-    QWidget,
-)
+from PyQt6.QtWidgets import QStackedWidget, QVBoxLayout, QWidget
 from widgets.ui_factory import (  # Assuming custom import, details unknown
     UIComponentFactory,
 )
@@ -68,7 +58,7 @@ class ParameterConfiguration(QWidget):
         index: int = self.stacked_widget.indexOf(self.widget_cache[cache_key])
         self.stacked_widget.setCurrentIndex(index)
 
-    def _infer_ui_spec_from_function(self, func: Callable) -> List[QWidget]:
+    def _infer_ui_spec_from_function(self, task_function: Callable) -> List[QWidget]:
         """
         Infers the UI specification from a function's parameters to generate appropriate widgets.
 
@@ -79,13 +69,9 @@ class ParameterConfiguration(QWidget):
             List[QWidget]: A list of widgets that correspond to the function's parameters.
         """
         spec: List[QWidget] = []
-        sig: inspect.Signature = inspect.signature(func)
-        param_types: Dict[str, Any] = {
-            name: param.annotation
-            for name, param in sig.parameters.items()
-            if param.default is inspect.Parameter.empty
-        }
-        param_constraints: Dict[str, Any] = getattr(func, "param_constraints", {})
+        sig = inspect.signature(task_function)
+        param_types = {name: param.annotation for name, param in sig.parameters.items()}
+        param_constraints = getattr(task_function, "param_constraints", {})
         for param, expected_type in param_types.items():
             constraints: Optional[Dict[str, Any]] = param_constraints.get(param)
             widget_spec: QWidget = UIComponentFactory.create_widget(
@@ -111,7 +97,7 @@ class ParameterConfiguration(QWidget):
         container.setLayout(layout)
         return container
 
-    def getUserData(self, task_spec: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def getUserData(self) -> Dict[str, Any]:
         """
         Retrieves user input data from the current UI configuration.
 
@@ -122,66 +108,29 @@ class ParameterConfiguration(QWidget):
             Dict[str, Any]: A dictionary containing the collected input data.
         """
         parameters: Dict[str, Any] = {}
-        current_container: Optional[QWidget] = self.stacked_widget.currentWidget()
-        if not current_container:
-            return parameters
-
-        for spec in task_spec:
-            kwarg_label: str = spec.get("kwarg_label", spec.get("label"))
-            layout: QVBoxLayout = current_container.layout()
-            for i in range(layout.count()):
-                layout_item = layout.itemAt(i)
-                widget: QWidget = layout_item.widget()
-                if isinstance(widget, QLabel) and widget.text() == spec["label"]:
-                    input_widget: Optional[QWidget] = (
-                        layout.itemAt(i + 1).widget()
-                        if i + 1 < layout.count()
-                        else None
+        current_widget = self.stacked_widget.currentWidget()
+        if current_widget:
+            for widget in current_widget.findChildren(QWidget):
+                param_name = widget.property("param_name")
+                if param_name:
+                    expected_type = UIComponentFactory.map_type_name_to_type(
+                        widget.property("expected_type")
                     )
-                    if input_widget:
-                        value: Any = UIComponentFactory.extract_value(input_widget)
-                        if value is not None:
-                            parameters[kwarg_label] = value
-                    break
-
+                    parameters[param_name] = UIComponentFactory.extract_value(
+                        widget, expected_type
+                    )
         return parameters
 
-    def getConfiguration(self, device, task_name):
+    def getConfiguration(self) -> Dict[str, Any]:
         """
         Collects the validated configuration from the UI and prepares it for use or saving.
 
         Args:
+            device (str): The device name for which to collect the configuration.
+            task_name (str): The task name for which to collect the configuration.
 
         Returns:
             Dict[str, Any]: A dictionary containing the validated configuration.
         """
-        current_container = (
-            self.stacked_widget.currentWidget()
-        )  # Get the visible container
-        if not current_container:
-            return {}  # Return empty dict if no container is visible
-
-        parameters = {}
-        task_spec = self._infer_ui_spec_from_function(
-            self.task_dictionary.get(device, {}).get(task_name)
-        )
-
-        for spec in task_spec:
-            kwarg_label = spec.get("kwarg_label", spec.get("label"))
-            layout = current_container.layout()
-            for i in range(layout.count()):
-                layout_item = layout.itemAt(i)
-                widget = layout_item.widget()
-                if isinstance(widget, QLabel) and widget.text() == spec["label"]:
-                    input_widget = (
-                        layout.itemAt(i + 1).widget()
-                        if i + 1 < layout.count()
-                        else None
-                    )
-                    if input_widget:
-                        value = UIComponentFactory.extract_value(input_widget)
-                        if value is not None:  # Only add if extraction was successful
-                            parameters[kwarg_label] = value
-                    break  # Break after finding the widget to avoid unnecessary iterations
-
-        return parameters
+        # TODO: validation
+        return self.getUserData()

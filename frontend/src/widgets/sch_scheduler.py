@@ -276,7 +276,7 @@ class JobConfigPopup(QDialog):
 
         # Connect signals
         self.deviceSelect.currentIndexChanged.connect(self.updateTaskList)
-        self.taskSelect.currentIndexChanged.connect(self.updateParameterUI)
+        self.taskSelect.currentIndexChanged.connect(self.updateUI)
 
         self.initUI()
 
@@ -350,17 +350,15 @@ class JobConfigPopup(QDialog):
         if self.taskSelect.count() > 0:
             self.taskSelect.setCurrentIndex(0)  # Set initial value to first option
         # Update parameter UI based on initial selections
-        self.updateParameterUI()
-
-    def updateParameterUI(self):
-        selected_device = self.deviceSelect.currentText()
-        selected_task = self.taskSelect.currentText()
-        self.parameterConfig.updateUI(selected_device, selected_task)
+        self.updateUI()
 
     def updateUI(self):
         selected_device = self.deviceSelect.currentText()
         selected_task = self.taskSelect.currentText()
-        self.parameterConfig.updateUI(selected_device, selected_task)
+        self.parameterConfig.updateUI(
+            selected_device,
+            selected_task if selected_task else self.taskSelect.setCurrentIndex(0),
+        )
 
     def setupTimeConfiguration(self, layout):
         # Create widgets to hold the grid layouts
@@ -451,14 +449,11 @@ class JobConfigPopup(QDialog):
 
     def accept(self):
         # Schedule the task with either timestamp or duration
-        selected_device = self.deviceSelect.currentText()
         selected_task = self.taskSelect.currentText()
         schedule_time = self.getDateTimeFromInputs()
         try:
-            task_spec = self.task_dict[selected_device][selected_task]
-
             # Get parameters from ParameterConfiguration
-            params = self.parameterConfig.getConfiguration(task_spec)
+            params = self.parameterConfig.getConfiguration()
 
             self.timekeeper.add_job(
                 task_name=selected_task, schedule_time=schedule_time, kwargs=params
@@ -467,11 +462,7 @@ class JobConfigPopup(QDialog):
             self._callback()
             super().accept()
         except Exception as e:
-            print(
-                {
-                    f"Error during commissioning job on {selected_device} - {selected_task} : {e}"
-                }
-            )
+            print({f"Error during commissioning job on : {e}"})
 
     def getDateTimeFromInputs(self):
         # Create a datetime or timedelta object from input fields

@@ -100,7 +100,8 @@ def task_set_sweep_parameters(
     return True
 
 
-def task_auto_edux1002a(*args, **kwargs):
+@parameter_constraints(press=["OK"])
+def task_auto_edux1002a(press: str):
     # for testing, kwarg_value means nothing
     factory.edux1002a_manager.device.autoscale()
     return True

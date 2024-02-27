@@ -14,6 +14,20 @@ from PyQt6.QtWidgets import (
 class UIComponentFactory:
 
     @staticmethod
+    def map_type_name_to_type(type_name: str):
+        """
+        Maps a type name (string) back to a type. This is needed for casting values fetched from UI components.
+        """
+        return {
+            "bool": bool,
+            "int": int,
+            "float": float,
+            "str": str,
+        }.get(
+            type_name, str
+        )  # Default to str if not found
+
+    @staticmethod
     def map_type_to_widget(
         param_type: type, constraints: Any = None
     ) -> Tuple[QWidget, Any]:
