@@ -22,19 +22,41 @@ from widgets.ui_factory import UIComponentFactory
 
 
 class ExperimentConfiguration(QWidget):
+    """
+    A widget that displays and interacts with experiment configurations.
+
+    This widget allows users to load, view, and edit experiment configurations
+    defined in YAML format. It also handles validation and saving of the configuration.
+    """
+
     def __init__(
-        self, parent=None, task_functions: dict = None, task_enum: Enum = None
-    ):
+        self,
+        parent: QWidget | None = None,
+        task_functions: dict[str, object] | None = None,
+        task_enum: Enum | None = None,
+    ) -> None:
+        """
+        Initializes the widget.
+
+        Args:
+            parent: The parent widget of this widget. Defaults to None.
+            task_functions: A dictionary mapping task names to their corresponding functions. Defaults to None.
+            task_enum: An enumeration representing the valid task types. Defaults to None.
+        """
         super().__init__(parent)
         self.task_functions = task_functions
         self.task_enum = task_enum
-        self.config = None
+        self.config: dict[str, object] | None = None
         self.initUI()
 
-    def initUI(self):
+    def initUI(self) -> None:
+        """
+        Initializes the user interface of the widget.
+        """
         self.main_layout = QVBoxLayout(self)
         self.tabWidget = QTabWidget(self)
         self.main_layout.addWidget(self.tabWidget)
+
         self.descriptionWidget = QTextEdit(self)
         self.descriptionWidget.setReadOnly(True)
         self.descriptionWidget.setText(
@@ -53,7 +75,21 @@ class ExperimentConfiguration(QWidget):
         else:
             return False, "Failed to load or parse the configuration."
 
-    def validate(self, data: dict):
+    def validate(self, data: dict) -> tuple[bool, list[str], ErrorLevel]:
+        """
+        Validates the provided experiment configuration data.
+
+        Checks for various errors and inconsistencies in the configuration based on pre-defined rules.
+
+        Args:
+            data: The experiment configuration data in dictionary format.
+
+        Returns:
+            A tuple containing three elements:
+                - A boolean indicating whether the configuration is valid.
+                - A list of error messages if the configuration is invalid.
+                - The highest encountered error level (INFO, BAD_CONFIG, INVALID_YAML).
+        """
         overall_valid = True
         highest_error_level = ErrorLevel.INFO  # Assume the lowest severity to start
         validation_results = validate_configuration(
@@ -77,7 +113,16 @@ class ExperimentConfiguration(QWidget):
 
         return overall_valid, compact_message, highest_error_level
 
-    def error_handling(self, overall_valid, messages, highest_error_level):
+    def error_handling(
+        self, overall_valid: bool, messages: list[str], highest_error_level: ErrorLevel
+    ) -> str:
+        """
+        Handles display of error messages and configuration summaries based on validation results.
+
+        Displays appropriate messages based on the overall validity and error level.
+
+        Args:aining either a summary of the configuration or an error message.
+        """
         if overall_valid or highest_error_level == ErrorLevel.INFO:
             descriptionText = self.generate_experiment_summary(self.config)
         else:
@@ -98,7 +143,15 @@ class ExperimentConfiguration(QWidget):
             descriptionText = "Configuration Validation Failed: " + "\n".join(messages)
         return descriptionText
 
-    def load_and_display(self, config_path):
+    def load_and_display(self, config_path: str) -> None:
+        """
+        Loads and displays an experiment configuration or handles any errors encountered.
+
+        Performs loading, validation, and displays the results or error messages.
+
+        Args:
+            config_path: The path to the YAML file containing the configuration.
+        """
         with open(config_path, "r") as file:
             self.config = yaml.safe_load(file)
         if not self.config:
@@ -113,7 +166,15 @@ class ExperimentConfiguration(QWidget):
         )
         return overall_valid, "\n".join(messages), descriptionText
 
-    def displayExperimentDetails(self):
+    def displayExperimentDetails(self) -> None:
+        """
+        Displays the details of the loaded experiment configuration in a tabbed interface.
+
+        Creates tabs for each step in the experiment and populates them with
+        widgets for interacting with the step parameters.
+
+        Raises a warning message if no configuration is loaded.
+        """
         if not self.config:
             QMessageBox.warning(self, "Error", "No configuration loaded.")
             return
@@ -124,13 +185,27 @@ class ExperimentConfiguration(QWidget):
             for step in steps:
                 self.createTaskTab(step)
 
-    def get_function(self, task):
+    def get_function(self, task: str) -> object | None:
+        """
+        Retrieves the function associated with a specific task name.
+
+        Looks up the function from the provided dictionary or returns None if not found.
+
+        Args:
+            task: The name of the task.
+
+        Returns:
+            The function associated with the task or None if not found.
+        """
         return get_function_to_validate(task, self.task_functions, self.task_enum)
 
-    def createTaskTab(self, task: dict):
+    def createTaskTab(self, task: dict) -> None:
         """
-        Creates a tab for each experiment step and handles its widgets and validation,
-        iterating through the function's parameters for UI generation.
+        Generates a tab with a form layout for each step, allowing users to
+        interact with the step parameters.
+
+        Args:
+            task: A dictionary representing a single experiment step.
         """
 
         tab = QWidget()
@@ -143,7 +218,6 @@ class ExperimentConfiguration(QWidget):
         formWidget.setLayout(formLayout)
 
         task_function = self.get_function(task.get("task"))
-
         if not task_function:
             print(f"No function found for task: {task}")
             return
@@ -151,25 +225,19 @@ class ExperimentConfiguration(QWidget):
         # Inspect the function signature to get parameter information
         sig = inspect.signature(task_function)
         param_types = {name: param.annotation for name, param in sig.parameters.items()}
-
+        param_constraints = getattr(task_function, "param_constraints", {})
         # Initialize a dictionary to store the task parameters from the configuration
         task_parameters = task.get("parameters", {})
 
         for param_name, param in sig.parameters.items():
-            # Retrieve the parameter value from the task configuration if available
-            # Otherwise, set a default value or handle the missing case as appropriate
-            value = task_parameters.get(
-                param_name, None
-            )  # Adjust the default value as needed
+            value = task_parameters.get(param_name, None)
+            expected_type = param_types.get(param_name, str)
 
-            expected_type = param_types.get(
-                param_name, str
-            )  # Default to str if not specified
+            # Now, extract specific constraints for the current parameter
+            specific_constraints = param_constraints.get(param_name, None)
 
-            # Create appropriate widget based on expected type and enforce range limits
-            param_constraints = getattr(task_function, "param_constraints", {})
             widget = UIComponentFactory.create_widget(
-                param_name, value, expected_type, param_constraints
+                param_name, value, expected_type, specific_constraints
             )
 
             # Create labels for parameter name and type hinting (optional)
@@ -182,9 +250,17 @@ class ExperimentConfiguration(QWidget):
             tab, get_task_enum_value(task.get("task"), self.task_enum)
         )
 
-    def getUserData(self):
+    def getUserData(self) -> dict:
         """
-        Collects the configuration from the UI, validating input and preserving data types.
+        Collects the configuration data from the UI, extracting and validating user input.
+
+        Iterates through each tab and form layout, extracting form widget values
+        and converting them to the expected data types based on the defined parameter types.
+
+        Raises a ValueError if validation fails.
+
+        Returns:
+            A dictionary containing the updated experiment configuration data.
         """
         updated_config = {
             "experiment": {
@@ -214,6 +290,7 @@ class ExperimentConfiguration(QWidget):
                     param_name = param_label_widget.text().split(" :")[
                         0
                     ]  # Extract parameter name before the colon
+
                     input_widget = form_layout.itemAt(
                         i, QFormLayout.ItemRole.FieldRole
                     ).widget()
@@ -228,9 +305,15 @@ class ExperimentConfiguration(QWidget):
 
         return updated_config
 
-    def getConfiguration(self):
+    def getConfiguration(self) -> dict:
         """
-        Collects the validated configuration from the UI and prepares it for use or saving.
+        Collects the user-modified configuration from the UI and performs validation.
+
+        Extracts data from the UI, validates it, and raises an error
+        if validation fails. Otherwise, returns the validated configuration.
+
+        Raises:
+            ValueError: If validation of the user-modified configuration fails.
         """
         # Extract the user-modified configuration from the UI elements
         data = self.getUserData()
@@ -287,9 +370,19 @@ class ExperimentConfiguration(QWidget):
 
         return "\n".join(summary_lines)
 
-    def saveConfiguration(self, config_path):
+    def saveConfiguration(self, config_path: str) -> bool:
         """
-        Saves the configuration to a file, handling potential errors.
+        Saves the user-modified experiment configuration to a YAML file.
+
+        Extracts the configuration data from the UI, performs validation,
+        and saves it to the specified file path if valid. Displays relevant
+        messages based on the success or failure of the operation.
+
+        Args:
+            config_path: The path to the YAML file to save the configuration to.
+
+        Returns:
+            A boolean indicating whether the configuration was saved successfully.
         """
 
         config = self.getConfiguration()

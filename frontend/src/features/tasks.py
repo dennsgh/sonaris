@@ -39,10 +39,10 @@ def task_on_off_dg4202(channel: int, status: bool) -> bool:
 
 
 @parameter_constraints(
-    frequency=(0.0, float("inf")),
-    channel=(1, 2),
+    frequency=(0.0, DG4202.FREQ_LIMIT),
+    channel=[1, 2],  # decorating with list means forced options
     waveform_type=DG4202.available_waveforms(),
-    offset=(0, 5),
+    offset=(0.0, 5.0),
 )
 def task_set_waveform_parameters(
     channel: int,
@@ -66,9 +66,9 @@ def task_set_waveform_parameters(
 
 
 @parameter_constraints(
-    channel=(1, 2),
-    fstart=(0.0, float("inf")),
-    fstop=(0.0, float("inf")),
+    channel=[1, 2],
+    fstart=(0.0, DG4202.FREQ_LIMIT),
+    fstop=(0.0, DG4202.FREQ_LIMIT),
     time=(0.0, float("inf")),
     rime=(0.0, float("inf")),
     htime_start=(0.0, float("inf")),

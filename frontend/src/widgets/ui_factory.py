@@ -1,58 +1,104 @@
-from PyQt6.QtWidgets import QCheckBox, QComboBox, QDoubleSpinBox, QLineEdit, QSpinBox
+from enum import Enum
+from typing import Any, Tuple
+
+from PyQt6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QDoubleSpinBox,
+    QLineEdit,
+    QSpinBox,
+    QWidget,
+)
 
 
 class UIComponentFactory:
+
     @staticmethod
-    def create_widget(param_name, value, expected_type, constraints=None):
-        """Creates and returns a widget based on the expected data type and constraints, appending metadata."""
-        widget = None
-        min_val, max_val = -2147483647, 2147483647  # Default limits for int and float
+    def map_type_to_widget(
+        param_type: type, constraints: Any = None
+    ) -> Tuple[QWidget, Any]:
+        """
+        Maps a parameter type to a PyQt widget, considering the constraints.
+        """
+        print(f"{param_type} - {constraints}")
+        if param_type in [int, float, str] and isinstance(constraints, list):
+            widget = QComboBox()
+            for value in constraints:
+                widget.addItem(str(value), value)
+            default_value = constraints[0]
+        elif param_type == int:
+            widget = QSpinBox()
+            if constraints and isinstance(constraints, tuple):
+                widget.setMinimum(constraints[0])
+                widget.setMaximum(constraints[1])
+            else:
+                widget.setRange(-2147483648, 2147483647)  # Default 32-bit integer range
+            default_value = 0
 
-        if expected_type == bool:
-            widget = QCheckBox()
-            widget.setChecked(False if value is None else value)
-        elif expected_type in (int, float):
-            widget = QSpinBox() if expected_type == int else QDoubleSpinBox()
-            if constraints:
-                # Check if constraints is a tuple and assign min and max values accordingly
-                if isinstance(constraints, tuple) and len(constraints) == 2:
-                    min_val, max_val = constraints
-                else:
-                    min_val = (
-                        constraints.get("min", min_val)
-                        if isinstance(constraints, dict)
-                        else min_val
-                    )
-                    max_val = (
-                        constraints.get("max", max_val)
-                        if isinstance(constraints, dict)
-                        else max_val
-                    )
-            widget.setMinimum(min_val)
-            widget.setMaximum(max_val)
-            widget.setValue(0 if value is None else value)
-        elif expected_type == str:
+        elif param_type == float:
+            widget = QDoubleSpinBox()
+            widget.setDecimals(7)
+            if constraints and isinstance(constraints, tuple):
+                widget.setMinimum(constraints[0])
+                widget.setMaximum(constraints[1])
+            else:
+                widget.setRange(-1.0e100, 1.0e100)
+                # Default to 3 decimal places for broad applicability
+            default_value = 0.0
 
+        elif param_type == str:
             widget = QLineEdit()
-            widget.setText(value)
-            if constraints and "options" in constraints and expected_type == str:
-                # Replace QLineEdit with QComboBox for string type with options constraints
-                widget = QComboBox()
-                widget.addItems(constraints["options"])
-                widget.setCurrentText("" if value is None else value)
+            # Optionally set a placeholder text here to guide the user
+            default_value = ""
 
-        # Append metadata here
+        elif param_type == bool:
+            widget = QCheckBox()
+            default_value = False
+        else:  # Default case, especially for types like str without specific constraints
+            widget = QLineEdit()
+            default_value = ""
+
+        # Set property to identify the expected type easily
+        return widget, default_value
+
+    @staticmethod
+    def create_widget(
+        param_name: str, value: Any, expected_type: type, constraints: Any
+    ) -> QWidget:
+        """
+        Creates a widget based on the parameter's expected type and the specific constraints.
+        """
+        widget, default_value = UIComponentFactory.map_type_to_widget(
+            expected_type, constraints
+        )
+
+        # Apply the current value or default to the widget
+        if isinstance(widget, (QSpinBox, QDoubleSpinBox)):
+            widget.setValue(
+                expected_type(value)
+                if value is not None
+                else expected_type(default_value)
+            )
+        elif isinstance(widget, QCheckBox):
+            widget.setChecked(
+                value if value is not None else expected_type(default_value)
+            )
+        elif isinstance(widget, QComboBox):
+            if value in constraints:  # Assuming `constraints` is a list for QComboBox
+                index = widget.findData(value)
+                widget.setCurrentIndex(index)
+            else:
+                widget.setCurrentIndex(0)
+        elif isinstance(widget, QLineEdit):
+            widget.setText(str(value) if value is not None else str(default_value))
         widget.setProperty("expected_type", expected_type.__name__)
-        widget.setProperty(
-            "param_name", param_name
-        )  # Store parameter name as well for later retrieval
+        widget.setProperty("param_name", param_name)
 
         return widget
 
     @staticmethod
     def extract_value(widget, expected_type=None):
         """Extracts and returns the value from the widget, casting it to the expected type."""
-        # Retrieve the expected type from the widget metadata if not explicitly provided
         if expected_type is None:
             expected_type_name = widget.property("expected_type")
             if expected_type_name == "bool":
@@ -64,7 +110,7 @@ class UIComponentFactory:
             elif expected_type_name == "str":
                 expected_type = str
             else:
-                expected_type = None  # Fallback if type is unknown/not set
+                expected_type = None
 
         if isinstance(widget, QLineEdit):
             value = widget.text()
@@ -73,16 +119,12 @@ class UIComponentFactory:
         elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
             value = widget.value()
         elif isinstance(widget, QComboBox):
-            value = widget.currentText()
+            value = (
+                widget.currentData()
+            )  # Or use currentText(), depending on what's expected
         else:
             value = None
 
-        if expected_type == bool:
-            return bool(value)
-        elif expected_type == int:
-            return int(value) if value is not None else None
-        elif expected_type == float:
-            return float(value) if value is not None else None
-        elif expected_type == str:
-            return str(value)
+        if expected_type in [bool, int, float, str]:
+            return expected_type(value)
         return value

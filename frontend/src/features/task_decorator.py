@@ -1,7 +1,6 @@
 import functools
 
 
-# Adjusted decorator to simply pass through functions without constraints
 def parameter_constraints(**constraints):
     def decorator(func):
         @functools.wraps(func)
