@@ -13,6 +13,7 @@ from PyQt6.QtWidgets import (
     QLabel,
     QMessageBox,
     QScrollArea,
+    QSizePolicy,
     QTabWidget,
     QTextEdit,
     QVBoxLayout,
@@ -63,9 +64,14 @@ class ExperimentConfiguration(QWidget):
             "Load an experiment configuration to see its details here."
         )
         self.main_layout.addWidget(self.descriptionWidget)
+        # Set size policy to make sure the widget expands both horizontally and vertically
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.tabWidget.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
 
     def loadConfiguration(self, config_path):
-        valid, message, descriptionText = self.load_and_display(config_path)
+        valid, message, descriptionText = self.load_and_validate(config_path)
         self.descriptionWidget.setText(descriptionText)
 
         if valid:
@@ -143,7 +149,7 @@ class ExperimentConfiguration(QWidget):
             descriptionText = "Configuration Validation Failed: " + "\n".join(messages)
         return descriptionText
 
-    def load_and_display(self, config_path: str) -> None:
+    def load_and_validate(self, config_path: str) -> None:
         """
         Loads and displays an experiment configuration or handles any errors encountered.
 
@@ -164,6 +170,7 @@ class ExperimentConfiguration(QWidget):
         descriptionText = self.error_handling(
             overall_valid, messages, highest_error_level
         )
+
         return overall_valid, "\n".join(messages), descriptionText
 
     def displayExperimentDetails(self) -> None:
@@ -184,20 +191,7 @@ class ExperimentConfiguration(QWidget):
         if steps:
             for step in steps:
                 self.createTaskTab(step)
-
-    def get_function(self, task: str) -> object | None:
-        """
-        Retrieves the function associated with a specific task name.
-
-        Looks up the function from the provided dictionary or returns None if not found.
-
-        Args:
-            task: The name of the task.
-
-        Returns:
-            The function associated with the task or None if not found.
-        """
-        return get_function_to_validate(task, self.task_functions, self.task_enum)
+        self.layout().update()
 
     def createTaskTab(self, task: dict) -> None:
         """
@@ -215,8 +209,8 @@ class ExperimentConfiguration(QWidget):
         layout.addWidget(scrollArea)
         formWidget = QWidget()
         formLayout = QFormLayout()
-        formWidget.setLayout(formLayout)
 
+        formWidget.setLayout(formLayout)
         task_function = self.get_function(task.get("task"))
         if not task_function:
             print(f"No function found for task: {task}")
@@ -240,7 +234,9 @@ class ExperimentConfiguration(QWidget):
             widget = UIComponentFactory.create_widget(
                 param_name, value, expected_type, specific_constraints
             )
-
+            widget.setSizePolicy(
+                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
+            )
             # Create labels for parameter name and type hinting (optional)
             paramNameLabel = QLabel(f"{param_name} :{expected_type.__name__}")
             # Add labels and widget to the form layout
@@ -250,6 +246,11 @@ class ExperimentConfiguration(QWidget):
         self.tabWidget.addTab(
             tab, get_task_enum_value(task.get("task"), self.task_enum)
         )
+        layout.addStretch(1)
+        scrollArea.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
+        tab.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
     def getUserData(self) -> dict:
         """
@@ -329,6 +330,20 @@ class ExperimentConfiguration(QWidget):
             raise ValueError("Configuration validation failed.")
 
         return data
+
+    def get_function(self, task: str) -> object | None:
+        """
+        Retrieves the function associated with a specific task name.
+
+        Looks up the function from the provided dictionary or returns None if not found.
+
+        Args:
+            task: The name of the task.
+
+        Returns:
+            The function associated with the task or None if not found.
+        """
+        return get_function_to_validate(task, self.task_functions, self.task_enum)
 
     def validate_and_convert_value(self, text, expected_type):
         """

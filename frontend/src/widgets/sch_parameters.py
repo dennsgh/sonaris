@@ -95,6 +95,9 @@ class ParameterConfiguration(QWidget):
         container = QWidget()
         layout = QVBoxLayout(container)
         for param_name, widget, expected_type in spec:
+            # Create a horizontal layout for each parameter
+            param_layout = QHBoxLayout()
+
             # Create a label for each parameter that displays its name and type
             label_text = (
                 f"{param_name}: {expected_type.__name__}"
@@ -102,8 +105,13 @@ class ParameterConfiguration(QWidget):
                 else param_name
             )
             param_label = QLabel(label_text)
-            layout.addWidget(param_label)
-            layout.addWidget(widget)
+
+            # Add label and widget to the horizontal layout
+            param_layout.addWidget(param_label)
+            param_layout.addWidget(widget)
+
+            # Add the horizontal layout to the main vertical layout
+            layout.addLayout(param_layout)
         container.setLayout(layout)
         return container
 
