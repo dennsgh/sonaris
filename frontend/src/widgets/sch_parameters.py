@@ -1,7 +1,7 @@
 import inspect
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from PyQt6.QtWidgets import QStackedWidget, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QHBoxLayout, QLabel, QStackedWidget, QVBoxLayout, QWidget
 from widgets.ui_factory import (  # Assuming custom import, details unknown
     UIComponentFactory,
 )
@@ -45,6 +45,7 @@ class ParameterConfiguration(QWidget):
             device (str): The name of the device for which the UI should be updated.
             task_name (str): The name of the task for which the UI should be updated.
         """
+        print(f"Got{device}-{task_name}")
         cache_key: Tuple[str, str] = (device, task_name)
         if cache_key not in self.widget_cache:
             task_func: Optional[Callable] = self.task_dictionary.get(device, {}).get(
@@ -73,11 +74,12 @@ class ParameterConfiguration(QWidget):
         param_types = {name: param.annotation for name, param in sig.parameters.items()}
         param_constraints = getattr(task_function, "param_constraints", {})
         for param, expected_type in param_types.items():
-            constraints: Optional[Dict[str, Any]] = param_constraints.get(param)
-            widget_spec: QWidget = UIComponentFactory.create_widget(
+            constraints = param_constraints.get(param)
+            widget_spec = UIComponentFactory.create_widget(
                 param, None, expected_type, constraints
             )
-            spec.append(widget_spec)
+            # Include parameter name and type in the spec
+            spec.append((param, widget_spec, expected_type))
         return spec
 
     def generateUI(self, spec: List[QWidget]) -> QWidget:
@@ -90,9 +92,17 @@ class ParameterConfiguration(QWidget):
         Returns:
             QWidget: A container widget with the specified UI components.
         """
-        container: QWidget = QWidget()
-        layout: QVBoxLayout = QVBoxLayout(container)
-        for widget in spec:
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        for param_name, widget, expected_type in spec:
+            # Create a label for each parameter that displays its name and type
+            label_text = (
+                f"{param_name}: {expected_type.__name__}"
+                if expected_type
+                else param_name
+            )
+            param_label = QLabel(label_text)
+            layout.addWidget(param_label)
             layout.addWidget(widget)
         container.setLayout(layout)
         return container

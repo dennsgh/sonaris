@@ -253,6 +253,8 @@ class SchedulerWidget(QWidget):
 
 
 class JobConfigPopup(QDialog):
+    NO_TASK_STRING = "No tasks available"
+
     def __init__(self, timekeeper: Timekeeper, _callback: Callable):
         super().__init__()
         self.resize(800, 320)
@@ -342,23 +344,26 @@ class JobConfigPopup(QDialog):
         self.durationWidget.setVisible(not isTimestamp)
 
     def updateTaskList(self):
-        # Update the task list based on the selected device
         selected_device = self.deviceSelect.currentText()
         tasks = self.tasks.get(selected_device, {}).keys()
         self.taskSelect.clear()
-        self.taskSelect.addItems(tasks)
-        if self.taskSelect.count() > 0:
-            self.taskSelect.setCurrentIndex(0)  # Set initial value to first option
-        # Update parameter UI based on initial selections
+        if tasks:
+            self.taskSelect.addItems(tasks)
+            self.taskSelect.setCurrentIndex(0)
+        else:
+            self.taskSelect.addItem(self.NO_TASK_STRING)
+            self.taskSelect.setCurrentIndex(0)
+        print(f"TASK {self.taskSelect.currentText()}")
         self.updateUI()
 
     def updateUI(self):
         selected_device = self.deviceSelect.currentText()
         selected_task = self.taskSelect.currentText()
-        self.parameterConfig.updateUI(
-            selected_device,
-            selected_task if selected_task else self.taskSelect.setCurrentIndex(0),
-        )
+        # Check if the selected task is valid before updating UI
+        if selected_task and selected_task != "No tasks available":
+            self.parameterConfig.updateUI(selected_device, selected_task)
+        else:
+            pass
 
     def setupTimeConfiguration(self, layout):
         # Create widgets to hold the grid layouts
