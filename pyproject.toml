@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "mrilabs"
 version = "0.1.0"
-description = "Lab equipment automation"
-authors = ["dennis <gohdennis@tum.de>"]
+description = "Software Framework for Task Automation and Scheduling"
+authors = ["dennis <denngohis@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 
