@@ -19,7 +19,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        poetry install
+        pip install poetry && poetry install
         poetry run python ./etc/env.py
 
     - name: Test with pytest
