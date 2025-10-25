@@ -1,0 +1,31 @@
+# delay is the wait time before executing the next step
+experiment:
+  steps:
+  - task: DG4202_TOGGLE
+    description: This will run immediately
+    delay: 0 
+    parameters:
+      channel: 1
+      output: on
+  - task: DG4202_SET_WAVEFORM
+    description: This will run in 5 seconds
+    delay: 5  
+    parameters:
+      channel: 1
+      send_on: true
+      waveform_type: PULSE
+      amplitude: 2
+      frequency: 5 
+      offset: 0
+  - task: DG4202_TOGGLE
+    description: Turn channel 2 on
+    delay: 10
+    parameters:
+      channel: 1
+      output: off
+  - task: DG4202_TOGGLE
+    description: This will run immediately
+    delay: 0 
+    parameters:
+      channel: 1
+      output: off

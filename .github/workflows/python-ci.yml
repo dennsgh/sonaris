@@ -1,0 +1,35 @@
+name: Python CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Run hardware driver tests.
+    runs-on: ubuntu-latest  
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.11.5"
+
+    - name: Set environment variables for headless testing
+      run: echo "QT_QPA_PLATFORM=offscreen" >> $GITHUB_ENV
+
+    - name: Install system dependencies
+      run: sudo apt-get update && sudo apt-get install -y libegl1 libgl1-mesa-dev
+
+    - name: Install dependencies
+      run: |
+        pip install poetry pytest && poetry install --no-root
+        poetry add pytest
+        poetry run python ./etc/env.py
+        
+    - name: Load .env and run tests
+      run: |
+        poetry run dotenv run python -m pytest .

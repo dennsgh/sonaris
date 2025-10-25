@@ -1,0 +1,24 @@
+experiment:
+  steps:
+  - task: DG4202_SET_SWEEP
+    delay: 2
+    parameters:
+      channel: 1
+      send_on: false
+      fstart: 0.0
+      fstop: 50
+      time: 2
+      rtime: 0.0
+      htime_start: 0.0
+      htime_stop: 0.0
+  - task: DG4202_SET_SWEEP
+    delay: 5
+    parameters:
+      channel: 1
+      send_on: false
+      fstart: 0.0
+      fstop: 100
+      time: 2
+      rtime: 0.0
+      htime_start: 0.0
+      htime_stop: 0.0
