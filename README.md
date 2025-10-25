@@ -1,7 +1,4 @@
 <h1 align="center">
-    <a href="//github.com/dennsgh/sonaris" target="_blank">
-        <img alt="Sonaris" src="etc/sonaris.png" style="max-width:100%;">
-    </a>
     <br>Sonaris Automation Framework
 </h1>
 
